@@ -570,6 +570,68 @@ function AddModal({ onAdd, onClose, templates, deptGroups: dg }) {
   );
 }
 
+// ── 입사자 정보 수정 모달 ──
+function EditModal({ person, onUpdate, onClose, deptGroups: dg }) {
+  const groups = (dg && dg.length > 0) ? dg : DEPT_GROUPS;
+  const findGroup = () => groups.find(g => g.depts.includes(person.dept))?.group || groups[0].group;
+  const [form, setForm] = useState({
+    name: person.name || "",
+    deptGroup: findGroup(),
+    dept: person.dept || "",
+    joinDate: person.join_date || person.joinDate || "",
+  });
+  const [saving, setSaving] = useState(false);
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const currentGroup = groups.find(g => g.group === form.deptGroup) || groups[0];
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, backdropFilter: "blur(4px)" }}>
+      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 24, width: 380, boxShadow: "0 20px 60px rgba(0,0,0,0.12)" }}>
+        <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>✏️ 입사자 정보 수정</div>
+        <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 20 }}>{person.name} 님의 정보를 수정합니다</div>
+        {[
+          { label: "이름", key: "name", type: "text", placeholder: "홍길동" },
+          { label: "입사일", key: "joinDate", type: "date" },
+        ].map(f => (
+          <div key={f.key} style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 12, color: "#64748b", marginBottom: 5, fontWeight: 500 }}>{f.label}</div>
+            <input type={f.type} value={form[f.key]} placeholder={f.placeholder || ""}
+              onChange={e => set(f.key, e.target.value)}
+              style={{ width: "100%", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "8px 10px", color: "#0f172a", fontSize: 13, boxSizing: "border-box" }} />
+          </div>
+        ))}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 5, fontWeight: 500 }}>본부</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+            {groups.map(g => (
+              <button key={g.group} onClick={() => { set("deptGroup", g.group); set("dept", g.depts[0] || ""); }}
+                style={{ background: form.deptGroup === g.group ? "#3b82f6" : "#f8fafc", border: `1px solid ${form.deptGroup === g.group ? "#3b82f6" : "#e2e8f0"}`, borderRadius: 8, padding: "5px 10px", color: form.deptGroup === g.group ? "#fff" : "#64748b", fontSize: 12, cursor: "pointer", fontWeight: form.deptGroup === g.group ? 700 : 400 }}>
+                {g.group}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 5, fontWeight: 500 }}>스쿼드 / 셀</div>
+          <select value={form.dept} onChange={e => set("dept", e.target.value)}
+            style={{ width: "100%", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "8px 10px", color: "#0f172a", fontSize: 13 }}>
+            {currentGroup.depts.map(d => <option key={d}>{d}</option>)}
+          </select>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={onClose} style={{ flex: 1, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px", color: "#64748b", cursor: "pointer", fontSize: 13 }}>취소</button>
+          <button disabled={saving} onClick={async () => {
+            if (!form.name.trim()) return alert("이름을 입력해주세요");
+            setSaving(true);
+            await onUpdate(person.id, { name: form.name, dept: form.dept, join_date: form.joinDate });
+            onClose();
+          }} style={{ flex: 2, background: "#3b82f6", border: "none", borderRadius: 8, padding: "10px", color: "#fff", cursor: saving ? "default" : "pointer", fontSize: 13, fontWeight: 700, opacity: saving ? 0.7 : 1 }}>
+            {saving ? "저장 중..." : "수정 완료"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── 만족도 설문 폼 ──
 function SurveyForm({ personId, existingSurvey, onSubmit }) {
   const [score, setScore] = useState(existingSurvey?.score || 0);
@@ -897,7 +959,7 @@ function SatisfactionView({ surveys, people }) {
 }
 
 // ── 입사자 카드 ──
-function PersonCard({ d, templates, copied, onSelect, onCopy, onDelete }) {
+function PersonCard({ d, templates, copied, onSelect, onCopy, onDelete, onEdit }) {
   const pct = calcProgress(d.steps);
   const joinDate = d.join_date || d.joinDate;
   const dayDiff = joinDate ? Math.floor((new Date() - new Date(joinDate)) / 86400000) : null;
@@ -917,6 +979,8 @@ function PersonCard({ d, templates, copied, onSelect, onCopy, onDelete }) {
             style={{ background: copied === d.id ? "#f0fdf4" : "#eff6ff", border: `1px solid ${copied === d.id ? "#bbf7d0" : "#bfdbfe"}`, borderRadius: 6, padding: "4px 10px", fontSize: 11, color: copied === d.id ? "#16a34a" : "#2563eb", cursor: "pointer", whiteSpace: "nowrap" }}>
             {copied === d.id ? "✓ 복사됨" : "🔗 링크 복사"}
           </button>
+          <button onClick={(e) => { e.stopPropagation(); onEdit(d); }}
+            style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 6, padding: "4px 8px", fontSize: 11, color: "#64748b", cursor: "pointer" }}>✏️ 수정</button>
           <button onClick={(e) => { e.stopPropagation(); if (window.confirm(`${d.name} 님을 삭제할까요?`)) onDelete(d.id); }}
             style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 6, padding: "4px 8px", fontSize: 11, color: "#ef4444", cursor: "pointer" }}>삭제</button>
           <span style={{ fontSize: 12, color: "#6366f1", fontWeight: 600 }}>보기 →</span>
@@ -937,8 +1001,9 @@ function PersonCard({ d, templates, copied, onSelect, onCopy, onDelete }) {
 }
 
 // ── HR 대시보드 뷰 ──
-function HRView({ data, links, templates, deptGroups, onSelect, onAdd, onDelete }) {
+function HRView({ data, links, templates, deptGroups, onSelect, onAdd, onDelete, onUpdate }) {
   const [showModal, setShowModal] = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
   const [copied, setCopied] = useState(null);
   const [showCompleted, setShowCompleted] = useState(false);
   const [filterGroup, setFilterGroup] = useState("전체");
@@ -1034,7 +1099,7 @@ function HRView({ data, links, templates, deptGroups, onSelect, onAdd, onDelete 
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {active.length === 0 && <div style={{ textAlign: "center", color: "#94a3b8", fontSize: 13, padding: "20px 0" }}>조건에 맞는 입사자가 없어요</div>}
-        {active.map(d => <PersonCard key={d.id} d={d} templates={templates} copied={copied} onSelect={onSelect} onCopy={copyLink} onDelete={onDelete} />)}
+        {active.map(d => <PersonCard key={d.id} d={d} templates={templates} copied={copied} onSelect={onSelect} onCopy={copyLink} onDelete={onDelete} onEdit={setEditTarget} />)}
       </div>
 
       {completed.length > 0 && (
@@ -1046,12 +1111,13 @@ function HRView({ data, links, templates, deptGroups, onSelect, onAdd, onDelete 
           </button>
           {showCompleted && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
-              {completed.map(d => <PersonCard key={d.id} d={d} templates={templates} copied={copied} onSelect={onSelect} onCopy={copyLink} onDelete={onDelete} />)}
+              {completed.map(d => <PersonCard key={d.id} d={d} templates={templates} copied={copied} onSelect={onSelect} onCopy={copyLink} onDelete={onDelete} onEdit={setEditTarget} />)}
             </div>
           )}
         </div>
       )}
       {showModal && <AddModal onAdd={onAdd} onClose={() => setShowModal(false)} templates={templates} deptGroups={deptGroups} />}
+      {editTarget && <EditModal person={editTarget} onUpdate={onUpdate} onClose={() => setEditTarget(null)} deptGroups={deptGroups} />}
     </div>
   );
 }
@@ -1224,6 +1290,11 @@ function HRApp() {
     setData(prev => prev.filter(p => p.id !== id));
   };
 
+  const updatePerson = async (id, fields) => {
+    const { data: updated } = await supabase.from('people').update(fields).eq('id', id).select().single();
+    if (updated) setData(prev => prev.map(p => p.id === id ? { ...p, ...updated } : p));
+  };
+
   const addPerson = async (person) => {
     const { data: inserted } = await supabase.from('people').insert({
       name: person.name,
@@ -1264,6 +1335,7 @@ function HRApp() {
         onSelect={(id) => navigate(`/person/${id}`)}
         onAdd={addPerson}
         onDelete={deletePerson}
+        onUpdate={updatePerson}
       />}
       {view === "satisfaction" && <SatisfactionView surveys={surveys} people={data} />}
       {view === "settings" && <SettingsView
