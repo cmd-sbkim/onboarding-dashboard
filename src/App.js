@@ -93,7 +93,6 @@ const DEFAULT_TEMPLATES = {
   }
 };
 
-// 구형 데이터 정규화
 const normalizeItem = (item) => {
   const { link, ...rest } = item;
   return { desc: "", ...rest, links: item.links ?? (link ? [{ label: "링크", url: link }] : []), _dndId: item._dndId || `item-${Math.random()}` };
@@ -101,6 +100,7 @@ const normalizeItem = (item) => {
 const normalizeSteps = (steps) => steps.map(s => ({ ...s, items: s.items.map(normalizeItem) }));
 const normalizeTemplate = (t) => ({ intro: "", outro: "", ...t, steps: normalizeSteps(t.steps) });
 const cloneSteps = (steps) => normalizeSteps(steps).map(s => ({ ...s, items: s.items.map(i => ({ ...i, links: [...(i.links||[])] })) }));
+
 const DEPT_GROUPS = [
   { group: "글로벌본부", depts: ["CIS스쿼드", "글로벌스쿼드", "IMEA스쿼드", "동남아스쿼드", "남미스쿼드", "중화권스쿼드", "일본스쿼드"] },
   { group: "국내본부", depts: ["모공잡티스쿼드", "더비타스쿼드", "국내MD스쿼드", "지우개스쿼드", "노니스쿼드", "D2C스쿼드", "국내소셜미디어셀"] },
@@ -115,9 +115,9 @@ function calcProgress(steps) {
 }
 
 function ProgressBar({ pct, height = 8 }) {
-  const color = pct === 100 ? "#22c55e" : pct >= 50 ? "#f59e0b" : "#6366f1";
+  const color = pct === 100 ? "#16a34a" : pct >= 50 ? "#f59e0b" : "#6366f1";
   return (
-    <div style={{ background: "#2a2a3a", borderRadius: 99, height, width: "100%" }}>
+    <div style={{ background: "#e2e8f0", borderRadius: 99, height, width: "100%" }}>
       <div style={{ width: `${pct}%`, background: color, height, borderRadius: 99, transition: "width .5s" }} />
     </div>
   );
@@ -125,7 +125,7 @@ function ProgressBar({ pct, height = 8 }) {
 
 function LoadingScreen() {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", color: "#94a3b8", fontSize: 14 }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", color: "#94a3b8", fontSize: 14, background: "#f8fafc" }}>
       불러오는 중...
     </div>
   );
@@ -133,48 +133,59 @@ function LoadingScreen() {
 
 const withDndId = (items) => items.map(item => ({ ...item, _dndId: item._dndId || `dnd-${Math.random()}` }));
 
-function SortableLinkCard({ id, link, onEdit, onRemove, INPUT }) {
+const LIGHT_INPUT = {
+  background: "#f8fafc",
+  border: "1px solid #e2e8f0",
+  borderRadius: 6,
+  padding: "6px 10px",
+  color: "#0f172a",
+  fontSize: 13,
+  width: "100%",
+  boxSizing: "border-box",
+};
+
+function SortableLinkCard({ id, link, onEdit, onRemove }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   return (
-    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, background: "#1a1a2e", border: "1px solid #2a2a3a", borderRadius: 10, padding: "14px 16px" }}>
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, padding: "14px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
       <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8 }}>
-        <div {...attributes} {...listeners} style={{ cursor: "grab", color: "#64748b", fontSize: 20, flexShrink: 0, userSelect: "none", lineHeight: 1 }}>⠿</div>
-        <input value={link.emoji} onChange={e => onEdit("emoji", e.target.value)} style={{ ...INPUT, width: 48, textAlign: "center", fontSize: 18 }} />
-        <input value={link.label} onChange={e => onEdit("label", e.target.value)} style={{ ...INPUT, flex: 1 }} placeholder="버튼 이름" />
-        <button onClick={onRemove} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 18, flexShrink: 0, padding: "0 4px" }}>✕</button>
+        <div {...attributes} {...listeners} style={{ cursor: "grab", color: "#cbd5e1", fontSize: 20, flexShrink: 0, userSelect: "none", lineHeight: 1 }}>⠿</div>
+        <input value={link.emoji} onChange={e => onEdit("emoji", e.target.value)} style={{ ...LIGHT_INPUT, width: 48, textAlign: "center", fontSize: 18 }} />
+        <input value={link.label} onChange={e => onEdit("label", e.target.value)} style={{ ...LIGHT_INPUT, flex: 1 }} placeholder="버튼 이름" />
+        <button onClick={onRemove} style={{ background: "none", border: "none", color: "#cbd5e1", cursor: "pointer", fontSize: 18, flexShrink: 0, padding: "0 4px" }}>✕</button>
       </div>
-      <input value={link.url} onChange={e => onEdit("url", e.target.value)} style={INPUT} placeholder="https://..." />
+      <input value={link.url} onChange={e => onEdit("url", e.target.value)} style={LIGHT_INPUT} placeholder="https://..." />
     </div>
   );
 }
 
-function SortableCheckItem({ id, item, ii, onEditItem, onRemoveItem, onSetItemLinks, INPUT }) {
+function SortableCheckItem({ id, item, ii, onEditItem, onRemoveItem, onSetItemLinks }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const itemLinks = item.links || [];
   return (
-    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, display: "flex", flexDirection: "column", gap: 6, background: "#0f0f1a", borderRadius: 8, padding: "10px 12px" }}>
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, display: "flex", flexDirection: "column", gap: 6, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 12px" }}>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <div {...attributes} {...listeners} style={{ cursor: "grab", color: "#64748b", fontSize: 16, flexShrink: 0, userSelect: "none", lineHeight: 1 }}>⠿</div>
-        <input value={item.text} onChange={e => onEditItem(ii, "text", e.target.value)} style={{ ...INPUT, flex: 1 }} placeholder="항목 내용" />
-        <button onClick={() => onRemoveItem(ii)} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 16, flexShrink: 0, padding: "0 4px" }}>✕</button>
+        <div {...attributes} {...listeners} style={{ cursor: "grab", color: "#cbd5e1", fontSize: 16, flexShrink: 0, userSelect: "none", lineHeight: 1 }}>⠿</div>
+        <input value={item.text} onChange={e => onEditItem(ii, "text", e.target.value)} style={{ ...LIGHT_INPUT, flex: 1 }} placeholder="항목 내용" />
+        <button onClick={() => onRemoveItem(ii)} style={{ background: "none", border: "none", color: "#cbd5e1", cursor: "pointer", fontSize: 16, flexShrink: 0, padding: "0 4px" }}>✕</button>
       </div>
       <textarea value={item.desc || ""} onChange={e => onEditItem(ii, "desc", e.target.value)}
         placeholder="설명(선택)"
-        style={{ ...INPUT, fontSize: 12, resize: "vertical", minHeight: 48, fontFamily: "inherit", color: "#94a3b8" }} />
+        style={{ ...LIGHT_INPUT, fontSize: 12, resize: "vertical", minHeight: 48, fontFamily: "inherit", color: "#64748b" }} />
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {itemLinks.map((lnk, li) => (
           <div key={li} style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            <span style={{ fontSize: 11, color: "#64748b", flexShrink: 0 }}>🔗</span>
+            <span style={{ fontSize: 11, color: "#94a3b8", flexShrink: 0 }}>🔗</span>
             <input value={lnk.label} onChange={e => onSetItemLinks(ii, itemLinks.map((l, i) => i === li ? { ...l, label: e.target.value } : l))}
-              style={{ ...INPUT, width: 90, fontSize: 12 }} placeholder="버튼명" />
+              style={{ ...LIGHT_INPUT, width: 90, fontSize: 12 }} placeholder="버튼명" />
             <input value={lnk.url} onChange={e => onSetItemLinks(ii, itemLinks.map((l, i) => i === li ? { ...l, url: e.target.value } : l))}
-              style={{ ...INPUT, flex: 1, fontSize: 12 }} placeholder="https://..." />
+              style={{ ...LIGHT_INPUT, flex: 1, fontSize: 12 }} placeholder="https://..." />
             <button onClick={() => onSetItemLinks(ii, itemLinks.filter((_, i) => i !== li))}
-              style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 14, flexShrink: 0, padding: "0 2px" }}>✕</button>
+              style={{ background: "none", border: "none", color: "#cbd5e1", cursor: "pointer", fontSize: 14, flexShrink: 0, padding: "0 2px" }}>✕</button>
           </div>
         ))}
         <button onClick={() => onSetItemLinks(ii, [...itemLinks, { label: "링크", url: "" }])}
-          style={{ background: "none", border: "1px dashed #2a2a3a", borderRadius: 6, padding: "4px 8px", color: "#64748b", cursor: "pointer", fontSize: 11, alignSelf: "flex-start" }}>
+          style={{ background: "none", border: "1px dashed #e2e8f0", borderRadius: 6, padding: "4px 8px", color: "#94a3b8", cursor: "pointer", fontSize: 11, alignSelf: "flex-start" }}>
           + 링크 추가
         </button>
       </div>
@@ -182,19 +193,19 @@ function SortableCheckItem({ id, item, ii, onEditItem, onRemoveItem, onSetItemLi
   );
 }
 
-function SortableStepCard({ id, step, si, tKey, onEditLabel, onEditStepDesc, onRemoveStep, onEditItem, onRemoveItem, onAddItem, onSetItemLinks, onMoveItem, INPUT }) {
+function SortableStepCard({ id, step, si, onEditLabel, onEditStepDesc, onRemoveStep, onEditItem, onRemoveItem, onAddItem, onSetItemLinks, onMoveItem }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   return (
-    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, background: "#1a1a2e", border: "1px solid #2a2a3a", borderRadius: 12, overflow: "hidden" }}>
-      <div style={{ padding: "10px 14px", borderBottom: "1px solid #2a2a3a", display: "flex", gap: 8, alignItems: "center" }}>
-        <div {...attributes} {...listeners} style={{ cursor: "grab", color: "#64748b", fontSize: 20, flexShrink: 0, userSelect: "none", lineHeight: 1 }}>⠿</div>
-        <input value={step.label} onChange={e => onEditLabel(e.target.value)} style={{ ...INPUT, flex: 1, fontWeight: 700 }} />
-        <button onClick={onRemoveStep} style={{ background: "#3b1c1c", border: "none", borderRadius: 6, padding: "6px 10px", color: "#f87171", cursor: "pointer", fontSize: 12, flexShrink: 0 }}>단계 삭제</button>
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+      <div style={{ padding: "10px 14px", borderBottom: "1px solid #e2e8f0", display: "flex", gap: 8, alignItems: "center", background: "#f8fafc" }}>
+        <div {...attributes} {...listeners} style={{ cursor: "grab", color: "#cbd5e1", fontSize: 20, flexShrink: 0, userSelect: "none", lineHeight: 1 }}>⠿</div>
+        <input value={step.label} onChange={e => onEditLabel(e.target.value)} style={{ ...LIGHT_INPUT, flex: 1, fontWeight: 700 }} />
+        <button onClick={onRemoveStep} style={{ background: "#fef2f2", border: "none", borderRadius: 6, padding: "6px 10px", color: "#ef4444", cursor: "pointer", fontSize: 12, flexShrink: 0 }}>단계 삭제</button>
       </div>
-      <div style={{ padding: "8px 14px", borderBottom: "1px solid #1e1e2e" }}>
+      <div style={{ padding: "8px 14px", borderBottom: "1px solid #f1f5f9" }}>
         <textarea value={step.desc || ""} onChange={e => onEditStepDesc(e.target.value)}
           placeholder="이 단계에 대한 설명(선택) — 입사자 화면에 표시됩니다"
-          style={{ ...INPUT, fontSize: 12, resize: "vertical", minHeight: 44, fontFamily: "inherit", color: "#94a3b8" }} />
+          style={{ ...LIGHT_INPUT, fontSize: 12, resize: "vertical", minHeight: 44, fontFamily: "inherit", color: "#64748b" }} />
       </div>
       <div style={{ padding: "10px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
         <DndContext collisionDetection={closestCenter} onDragEnd={({ active, over }) => {
@@ -207,26 +218,24 @@ function SortableStepCard({ id, step, si, tKey, onEditLabel, onEditStepDesc, onR
           <SortableContext items={step.items.map(it => it._dndId || `item-${Math.random()}`)} strategy={verticalListSortingStrategy}>
             {step.items.map((item, ii) => (
               <SortableCheckItem key={item._dndId || ii} id={item._dndId || `item-${ii}`} item={item} ii={ii}
-                onEditItem={onEditItem} onRemoveItem={onRemoveItem} onSetItemLinks={onSetItemLinks} INPUT={INPUT} />
+                onEditItem={onEditItem} onRemoveItem={onRemoveItem} onSetItemLinks={onSetItemLinks} />
             ))}
           </SortableContext>
         </DndContext>
-        <button onClick={onAddItem} style={{ background: "none", border: "1px dashed #2a2a3a", borderRadius: 8, padding: "8px", color: "#64748b", cursor: "pointer", fontSize: 12 }}>+ 항목 추가</button>
+        <button onClick={onAddItem} style={{ background: "none", border: "1px dashed #e2e8f0", borderRadius: 8, padding: "8px", color: "#94a3b8", cursor: "pointer", fontSize: 12 }}>+ 항목 추가</button>
       </div>
     </div>
   );
 }
 
-// ── 부서 항목 드래그 카드 ──
 function SortableDeptItem({ id, name, onEdit, onRemove }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
-  const INPUT = { background: "#0f0f1a", border: "1px solid #2a2a3a", borderRadius: 6, padding: "6px 10px", color: "#e2e8f0", fontSize: 13, width: "100%", boxSizing: "border-box" };
   return (
     <div ref={setNodeRef} style={{ ...style, display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-      <span {...attributes} {...listeners} style={{ cursor: "grab", color: "#4a4a6a", fontSize: 16, userSelect: "none", flexShrink: 0 }}>⠿</span>
-      <input value={name} onChange={e => onEdit(e.target.value)} style={{ ...INPUT, flex: 1 }} placeholder="스쿼드/셀 이름" />
-      <button onClick={onRemove} style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer", fontSize: 14, padding: "0 4px", flexShrink: 0 }}>✕</button>
+      <span {...attributes} {...listeners} style={{ cursor: "grab", color: "#cbd5e1", fontSize: 16, userSelect: "none", flexShrink: 0 }}>⠿</span>
+      <input value={name} onChange={e => onEdit(e.target.value)} style={{ ...LIGHT_INPUT, flex: 1 }} placeholder="스쿼드/셀 이름" />
+      <button onClick={onRemove} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 14, padding: "0 4px", flexShrink: 0 }}>✕</button>
     </div>
   );
 }
@@ -358,15 +367,20 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
   };
 
   const TAB_STYLE = (active) => ({
-    padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
-    background: active ? "#3b82f6" : "#2a2a3a", color: active ? "#fff" : "#94a3b8",
+    padding: "7px 16px",
+    borderRadius: 8,
+    border: active ? "none" : "1px solid #e2e8f0",
+    cursor: "pointer",
+    fontSize: 13,
+    fontWeight: 600,
+    background: active ? "#3b82f6" : "#fff",
+    color: active ? "#fff" : "#64748b",
+    boxShadow: active ? "0 1px 3px rgba(59,130,246,0.25)" : "none",
   });
-  const INPUT = { background: "#0f0f1a", border: "1px solid #2a2a3a", borderRadius: 6, padding: "6px 10px", color: "#e2e8f0", fontSize: 13, width: "100%", boxSizing: "border-box" };
 
   return (
-    <div style={{ padding: 24, maxWidth: 720, margin: "0 auto" }}>
-      <div style={{ fontSize: 20, fontWeight: 800, color: "#fff", marginBottom: 24 }}>📋 템플릿 관리</div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+    <div style={{ padding: "0 0 24px" }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <button style={TAB_STYLE(tab === "links")} onClick={() => setTab("links")}>🔗 가이드 링크</button>
         {Object.entries(editTemplates).map(([key, t]) => (
           <button key={key} style={TAB_STYLE(tab === key)} onClick={() => setTab(key)}>{t.name}</button>
@@ -376,23 +390,23 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
             <input value={newTemplateName} onChange={e => setNewTemplateName(e.target.value)}
               onKeyDown={e => e.key === "Enter" && addTemplate()}
               placeholder="템플릿 이름" autoFocus
-              style={{ background: "#0f0f1a", border: "1px solid #3b82f6", borderRadius: 8, padding: "6px 10px", color: "#e2e8f0", fontSize: 13, width: 140 }} />
+              style={{ background: "#fff", border: "1px solid #3b82f6", borderRadius: 8, padding: "6px 10px", color: "#0f172a", fontSize: 13, width: 140, outline: "none" }} />
             <button onClick={addTemplate}
               style={{ background: "#3b82f6", border: "none", borderRadius: 6, padding: "6px 12px", color: "#fff", cursor: "pointer", fontSize: 13 }}>추가</button>
             <button onClick={() => { setShowAddTemplate(false); setNewTemplateName(""); }}
-              style={{ background: "#2a2a3a", border: "none", borderRadius: 6, padding: "6px 8px", color: "#94a3b8", cursor: "pointer", fontSize: 13 }}>취소</button>
+              style={{ background: "#f1f5f9", border: "none", borderRadius: 6, padding: "6px 8px", color: "#64748b", cursor: "pointer", fontSize: 13 }}>취소</button>
           </div>
         ) : (
           <button onClick={() => setShowAddTemplate(true)}
-            style={{ background: "#1a1a2e", border: "1px dashed #3b82f6", borderRadius: 8, padding: "6px 14px", color: "#3b82f6", cursor: "pointer", fontSize: 13 }}>
+            style={{ background: "#fff", border: "1px dashed #bfdbfe", borderRadius: 8, padding: "6px 14px", color: "#3b82f6", cursor: "pointer", fontSize: 13 }}>
             + 템플릿 추가
           </button>
         )}
       </div>
 
       {tab === "links" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 4 }}>입사자 화면 상단에 표시되는 바로가기 버튼의 링크를 설정합니다. ⠿ 를 드래그해서 순서를 바꿀 수 있어요.</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ fontSize: 13, color: "#64748b", marginBottom: 4 }}>입사자 화면 상단에 표시되는 바로가기 버튼의 링크를 설정합니다. ⠿ 를 드래그해서 순서를 바꿀 수 있어요.</div>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={({ active, over }) => {
             if (active.id !== over?.id) {
               setEditLinks(prev => {
@@ -404,34 +418,32 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
           }}>
             <SortableContext items={editLinks.map(l => l._dndId)} strategy={verticalListSortingStrategy}>
               {editLinks.map((l, i) => (
-                <SortableLinkCard key={l._dndId} id={l._dndId} link={l} INPUT={INPUT}
+                <SortableLinkCard key={l._dndId} id={l._dndId} link={l}
                   onEdit={(field, val) => setLink(i, field, val)}
                   onRemove={() => setEditLinks(prev => prev.filter((_, idx) => idx !== i))} />
               ))}
             </SortableContext>
           </DndContext>
           <button onClick={() => setEditLinks(prev => [...prev, { label: "새 링크", emoji: "🔗", url: "", _dndId: `dnd-${Math.random()}` }])}
-            style={{ background: "#1a1a2e", border: "1px dashed #3b82f6", borderRadius: 10, padding: "10px", color: "#3b82f6", cursor: "pointer", fontSize: 13 }}>
+            style={{ background: "#fff", border: "1px dashed #bfdbfe", borderRadius: 10, padding: "10px", color: "#3b82f6", cursor: "pointer", fontSize: 13 }}>
             + 링크 추가
           </button>
         </div>
       )}
 
       {tab !== "links" && editTemplates[tab] && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {/* 템플릿 이름 */}
-          <div style={{ background: "#1a1a2e", border: "1px solid #2a2a3a", borderRadius: 12, padding: "14px 16px" }}>
-            <div style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600, marginBottom: 8 }}>📌 템플릿 이름</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "14px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 8 }}>📌 템플릿 이름</div>
             <input value={editTemplates[tab].name || ""} placeholder="템플릿 이름"
               onChange={e => setEditTemplates(prev => ({ ...prev, [tab]: { ...prev[tab], name: e.target.value } }))}
-              style={{ width: "100%", background: "#0f0f1a", border: "1px solid #2a2a3a", borderRadius: 8, padding: "10px 12px", color: "#e2e8f0", fontSize: 14, fontWeight: 700, boxSizing: "border-box" }} />
+              style={{ width: "100%", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 12px", color: "#0f172a", fontSize: 14, fontWeight: 700, boxSizing: "border-box" }} />
           </div>
-          {/* 시작 멘트 */}
-          <div style={{ background: "#1a1a2e", border: "1px solid #2a2a3a", borderRadius: 12, padding: "14px 16px" }}>
-            <div style={{ fontSize: 12, color: "#6366f1", fontWeight: 600, marginBottom: 8 }}>✏️ 시작 멘트 (입사자 화면 맨 위에 표시)</div>
+          <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "14px 16px" }}>
+            <div style={{ fontSize: 12, color: "#1d4ed8", fontWeight: 600, marginBottom: 8 }}>✏️ 시작 멘트 (입사자 화면 맨 위에 표시)</div>
             <textarea value={editTemplates[tab].intro || ""} placeholder="예) 셀리맥스에 오신 것을 환영해요! 아래 체크리스트를 순서대로 완료해주세요 😊"
               onChange={e => setEditTemplates(prev => ({ ...prev, [tab]: { ...prev[tab], intro: e.target.value } }))}
-              style={{ width: "100%", background: "#0f0f1a", border: "1px solid #2a2a3a", borderRadius: 8, padding: "10px 12px", color: "#e2e8f0", fontSize: 13, resize: "vertical", minHeight: 72, boxSizing: "border-box", fontFamily: "inherit" }} />
+              style={{ width: "100%", background: "#fff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "10px 12px", color: "#1e40af", fontSize: 13, resize: "vertical", minHeight: 72, boxSizing: "border-box", fontFamily: "inherit" }} />
           </div>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={({ active, over }) => {
             if (active.id !== over?.id) {
@@ -445,7 +457,7 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
           }}>
             <SortableContext items={editTemplates[tab].steps.map(s => s._dndId)} strategy={verticalListSortingStrategy}>
               {editTemplates[tab].steps.map((step, si) => (
-                <SortableStepCard key={step._dndId} id={step._dndId} step={step} si={si} tKey={tab} INPUT={INPUT}
+                <SortableStepCard key={step._dndId} id={step._dndId} step={step} si={si} tKey={tab}
                   onEditLabel={(val) => setStepLabel(tab, si, val)}
                   onRemoveStep={() => removeStep(tab, si)}
                   onEditStepDesc={(val) => setStepDesc(tab, si, val)}
@@ -458,19 +470,18 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
             </SortableContext>
           </DndContext>
           <button onClick={() => addStep(tab)}
-            style={{ background: "#1a1a2e", border: "1px dashed #3b82f6", borderRadius: 10, padding: "10px", color: "#3b82f6", cursor: "pointer", fontSize: 13 }}>
+            style={{ background: "#fff", border: "1px dashed #bfdbfe", borderRadius: 10, padding: "10px", color: "#3b82f6", cursor: "pointer", fontSize: 13 }}>
             + 단계 추가
           </button>
-          {/* 마무리 멘트 */}
-          <div style={{ background: "#1a1a2e", border: "1px solid #2a2a3a", borderRadius: 12, padding: "14px 16px" }}>
-            <div style={{ fontSize: 12, color: "#f59e0b", fontWeight: 600, marginBottom: 8 }}>✏️ 마무리 멘트 (입사자 화면 맨 아래에 표시)</div>
+          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 12, padding: "14px 16px" }}>
+            <div style={{ fontSize: 12, color: "#92400e", fontWeight: 600, marginBottom: 8 }}>✏️ 마무리 멘트 (입사자 화면 맨 아래에 표시)</div>
             <textarea value={editTemplates[tab].outro || ""} placeholder="예) 첫날 고생 많으셨어요! 궁금한 점은 언제든지 @hr 에게 문의해주세요 🙌"
               onChange={e => setEditTemplates(prev => ({ ...prev, [tab]: { ...prev[tab], outro: e.target.value } }))}
-              style={{ width: "100%", background: "#0f0f1a", border: "1px solid #2a2a3a", borderRadius: 8, padding: "10px 12px", color: "#e2e8f0", fontSize: 13, resize: "vertical", minHeight: 72, boxSizing: "border-box", fontFamily: "inherit" }} />
+              style={{ width: "100%", background: "#fff", border: "1px solid #fde68a", borderRadius: 8, padding: "10px 12px", color: "#92400e", fontSize: 13, resize: "vertical", minHeight: 72, boxSizing: "border-box", fontFamily: "inherit" }} />
           </div>
-          <div style={{ marginTop: 4, borderTop: "1px solid #2a2a3a", paddingTop: 16, display: "flex", justifyContent: "flex-end" }}>
+          <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 16, display: "flex", justifyContent: "flex-end" }}>
             <button onClick={() => deleteTemplate(tab)}
-              style={{ background: "none", border: "1px solid #3b1c1c", borderRadius: 8, padding: "8px 16px", color: "#f87171", cursor: "pointer", fontSize: 13 }}>
+              style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 16px", color: "#ef4444", cursor: "pointer", fontSize: 13 }}>
               🗑 이 템플릿 삭제
             </button>
           </div>
@@ -478,9 +489,9 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
       )}
 
       <div style={{ marginTop: 24, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12 }}>
-        {saved && <span style={{ fontSize: 13, color: "#22c55e", fontWeight: 600 }}>✓ 저장되었습니다!</span>}
+        {saved && <span style={{ fontSize: 13, color: "#16a34a", fontWeight: 600 }}>✓ 저장되었습니다!</span>}
         <button onClick={handleSave} disabled={saving}
-          style={{ background: saved ? "#16a34a" : "#22c55e", border: "none", borderRadius: 10, padding: "12px 28px", color: "#fff", fontWeight: 700, fontSize: 14, cursor: saving ? "default" : "pointer", opacity: saving ? 0.7 : 1, transition: "background .2s" }}>
+          style={{ background: saved ? "#16a34a" : "#3b82f6", border: "none", borderRadius: 10, padding: "11px 28px", color: "#fff", fontWeight: 700, fontSize: 14, cursor: saving ? "default" : "pointer", opacity: saving ? 0.7 : 1, transition: "background .2s", boxShadow: "0 1px 3px rgba(59,130,246,0.3)" }}>
           {saving ? "저장 중..." : "💾 저장하기"}
         </button>
       </div>
@@ -496,52 +507,52 @@ function AddModal({ onAdd, onClose, templates, deptGroups: dg }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const currentGroup = groups.find(g => g.group === form.deptGroup) || groups[0];
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
-      <div style={{ background: "#1a1a2e", border: "1px solid #3b82f6", borderRadius: 16, padding: 24, width: 360 }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: "#fff", marginBottom: 20 }}>➕ 신규 입사자 추가</div>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, backdropFilter: "blur(4px)" }}>
+      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 24, width: 380, boxShadow: "0 20px 60px rgba(0,0,0,0.12)" }}>
+        <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", marginBottom: 20 }}>➕ 신규 입사자 추가</div>
         {[
           { label: "이름", key: "name", type: "text", placeholder: "홍길동" },
           { label: "입사일", key: "joinDate", type: "date" },
         ].map(f => (
           <div key={f.key} style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>{f.label}</div>
+            <div style={{ fontSize: 12, color: "#64748b", marginBottom: 5, fontWeight: 500 }}>{f.label}</div>
             <input type={f.type} value={form[f.key]} placeholder={f.placeholder || ""}
               onChange={e => set(f.key, e.target.value)}
-              style={{ width: "100%", background: "#0f0f1a", border: "1px solid #2a2a3a", borderRadius: 8, padding: "8px 10px", color: "#e2e8f0", fontSize: 13, boxSizing: "border-box" }} />
+              style={{ width: "100%", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "8px 10px", color: "#0f172a", fontSize: 13, boxSizing: "border-box" }} />
           </div>
         ))}
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>본부</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 5, fontWeight: 500 }}>본부</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
             {groups.map(g => (
               <button key={g.group} onClick={() => { set("deptGroup", g.group); set("dept", g.depts[0] || ""); }}
-                style={{ background: form.deptGroup === g.group ? "#3b82f6" : "#0f0f1a", border: `1px solid ${form.deptGroup === g.group ? "#3b82f6" : "#2a2a3a"}`, borderRadius: 8, padding: "5px 10px", color: form.deptGroup === g.group ? "#fff" : "#94a3b8", fontSize: 12, cursor: "pointer", fontWeight: form.deptGroup === g.group ? 700 : 400 }}>
+                style={{ background: form.deptGroup === g.group ? "#3b82f6" : "#f8fafc", border: `1px solid ${form.deptGroup === g.group ? "#3b82f6" : "#e2e8f0"}`, borderRadius: 8, padding: "5px 10px", color: form.deptGroup === g.group ? "#fff" : "#64748b", fontSize: 12, cursor: "pointer", fontWeight: form.deptGroup === g.group ? 700 : 400 }}>
                 {g.group}
               </button>
             ))}
           </div>
-          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>스쿼드 / 셀</div>
+          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 5, fontWeight: 500 }}>스쿼드 / 셀</div>
           <select value={form.dept} onChange={e => set("dept", e.target.value)}
-            style={{ width: "100%", background: "#0f0f1a", border: "1px solid #2a2a3a", borderRadius: 8, padding: "8px 10px", color: "#e2e8f0", fontSize: 13 }}>
+            style={{ width: "100%", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "8px 10px", color: "#0f172a", fontSize: 13 }}>
             {currentGroup.depts.map(d => <option key={d}>{d}</option>)}
           </select>
         </div>
         <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>온보딩 템플릿</div>
+          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 5, fontWeight: 500 }}>온보딩 템플릿</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {Object.entries(templates).map(([key, t]) => (
-              <label key={key} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", background: form.templateKey === key ? "#1e2a4a" : "#0f0f1a", border: `1px solid ${form.templateKey === key ? "#3b82f6" : "#2a2a3a"}`, borderRadius: 8, padding: "8px 12px" }}>
+              <label key={key} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", background: form.templateKey === key ? "#eff6ff" : "#f8fafc", border: `1px solid ${form.templateKey === key ? "#bfdbfe" : "#e2e8f0"}`, borderRadius: 8, padding: "8px 12px" }}>
                 <input type="radio" name="template" value={key} checked={form.templateKey === key} onChange={() => set("templateKey", key)} style={{ accentColor: "#3b82f6" }} />
                 <div>
-                  <div style={{ fontSize: 13, color: "#e2e8f0", fontWeight: 600 }}>{t.name}</div>
-                  <div style={{ fontSize: 11, color: "#64748b" }}>{t.steps.length}단계 · {t.steps.flatMap(s => s.items).length}개 항목</div>
+                  <div style={{ fontSize: 13, color: "#0f172a", fontWeight: 600 }}>{t.name}</div>
+                  <div style={{ fontSize: 11, color: "#94a3b8" }}>{t.steps.length}단계 · {t.steps.flatMap(s => s.items).length}개 항목</div>
                 </div>
               </label>
             ))}
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={onClose} style={{ flex: 1, background: "#2a2a3a", border: "none", borderRadius: 8, padding: "10px", color: "#94a3b8", cursor: "pointer", fontSize: 13 }}>취소</button>
+          <button onClick={onClose} style={{ flex: 1, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px", color: "#64748b", cursor: "pointer", fontSize: 13 }}>취소</button>
           <button
             disabled={adding}
             onClick={async () => {
@@ -550,7 +561,7 @@ function AddModal({ onAdd, onClose, templates, deptGroups: dg }) {
               await onAdd({ ...form, steps: cloneSteps(templates[form.templateKey].steps) });
               onClose();
             }}
-            style={{ flex: 2, background: "#3b82f6", border: "none", borderRadius: 8, padding: "10px", color: "#fff", cursor: adding ? "default" : "pointer", fontSize: 13, fontWeight: 700, opacity: adding ? 0.7 : 1 }}>
+            style={{ flex: 2, background: "#3b82f6", border: "none", borderRadius: 8, padding: "10px", color: "#fff", cursor: adding ? "default" : "pointer", fontSize: 13, fontWeight: 700, opacity: adding ? 0.7 : 1, boxShadow: "0 1px 3px rgba(59,130,246,0.3)" }}>
             {adding ? "추가 중..." : "추가하기"}
           </button>
         </div>
@@ -559,7 +570,7 @@ function AddModal({ onAdd, onClose, templates, deptGroups: dg }) {
   );
 }
 
-// ── 입사자 개인 뷰 ──
+// ── 만족도 설문 폼 ──
 function SurveyForm({ personId, existingSurvey, onSubmit }) {
   const [score, setScore] = useState(existingSurvey?.score || 0);
   const [feedback, setFeedback] = useState(existingSurvey?.feedback || "");
@@ -567,42 +578,43 @@ function SurveyForm({ personId, existingSurvey, onSubmit }) {
   const [done, setDone] = useState(!!existingSurvey);
 
   if (done) return (
-    <div style={{ background: "#1a1a2e", border: "1px solid #22c55e33", borderRadius: 12, padding: "16px 18px", textAlign: "center" }}>
+    <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, padding: "16px 18px", textAlign: "center" }}>
       <div style={{ fontSize: 20, marginBottom: 6 }}>✅</div>
-      <div style={{ fontSize: 13, color: "#4ade80", fontWeight: 700 }}>만족도 설문 제출 완료</div>
+      <div style={{ fontSize: 13, color: "#15803d", fontWeight: 700 }}>만족도 설문 제출 완료</div>
       <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>소중한 의견 감사해요!</div>
     </div>
   );
 
   return (
-    <div style={{ background: "#1a1a2e", border: "1px solid #2a2a3a", borderRadius: 12, padding: "18px 18px 16px" }}>
-      <div style={{ fontSize: 14, fontWeight: 700, color: "#fff", marginBottom: 4 }}>📝 온보딩 만족도 조사</div>
-      <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>오늘 온보딩은 어떠셨나요? 솔직한 의견이 큰 도움이 됩니다.</div>
+    <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "18px 18px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+      <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>📝 온보딩 만족도 조사</div>
+      <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 16 }}>오늘 온보딩은 어떠셨나요? 솔직한 의견이 큰 도움이 됩니다.</div>
       <div style={{ display: "flex", gap: 8, marginBottom: 14, justifyContent: "center" }}>
         {[1,2,3,4,5].map(s => (
           <button key={s} onClick={() => setScore(s)}
-            style={{ background: "none", border: "none", fontSize: 32, cursor: "pointer", opacity: s <= score ? 1 : 0.25, transition: "opacity .15s", padding: 0 }}>
+            style={{ background: "none", border: "none", fontSize: 32, cursor: "pointer", opacity: s <= score ? 1 : 0.2, transition: "opacity .15s", padding: 0 }}>
             ⭐
           </button>
         ))}
       </div>
-      {score > 0 && <div style={{ textAlign: "center", fontSize: 12, color: "#f59e0b", marginBottom: 12 }}>
+      {score > 0 && <div style={{ textAlign: "center", fontSize: 12, color: "#f59e0b", marginBottom: 12, fontWeight: 600 }}>
         {["","별로였어요","아쉬웠어요","보통이었어요","좋았어요","아주 좋았어요!"][score]}
       </div>}
       <textarea value={feedback} onChange={e => setFeedback(e.target.value)}
         placeholder="개선사항이나 좋았던 점을 자유롭게 적어주세요 (선택)"
-        style={{ width: "100%", background: "#0f0f1a", border: "1px solid #2a2a3a", borderRadius: 8, padding: "10px 12px", color: "#e2e8f0", fontSize: 13, resize: "vertical", minHeight: 80, boxSizing: "border-box", fontFamily: "inherit" }} />
+        style={{ width: "100%", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 12px", color: "#0f172a", fontSize: 13, resize: "vertical", minHeight: 80, boxSizing: "border-box", fontFamily: "inherit" }} />
       <button disabled={score === 0 || submitting} onClick={async () => {
         setSubmitting(true);
         await onSubmit({ score, feedback });
         setDone(true);
-      }} style={{ marginTop: 10, width: "100%", background: score === 0 ? "#2a2a3a" : "#3b82f6", border: "none", borderRadius: 8, padding: "11px", color: score === 0 ? "#64748b" : "#fff", fontWeight: 700, fontSize: 13, cursor: score === 0 ? "default" : "pointer" }}>
+      }} style={{ marginTop: 10, width: "100%", background: score === 0 ? "#f1f5f9" : "#3b82f6", border: "none", borderRadius: 8, padding: "11px", color: score === 0 ? "#94a3b8" : "#fff", fontWeight: 700, fontSize: 13, cursor: score === 0 ? "default" : "pointer", transition: "background .2s" }}>
         {submitting ? "제출 중..." : "설문 제출하기"}
       </button>
     </div>
   );
 }
 
+// ── 입사자 개인 뷰 ──
 function PersonView({ person, links, templateMeta, survey, onBack, onToggle, onSubmitSurvey }) {
   const pct = calcProgress(person.steps);
   const allDone = pct === 100;
@@ -614,19 +626,19 @@ function PersonView({ person, links, templateMeta, survey, onBack, onToggle, onS
   const toggleCollapse = (si) => setCollapsed(prev => ({ ...prev, [si]: !prev[si] }));
   return (
     <div style={{ maxWidth: 560, margin: "0 auto", padding: "24px 16px" }}>
-      <button onClick={onBack} style={{ background: "none", border: "none", color: "#6366f1", cursor: "pointer", fontSize: 13, marginBottom: 20, padding: 0 }}>← 돌아가기</button>
+      <button onClick={onBack} style={{ background: "none", border: "none", color: "#6366f1", cursor: "pointer", fontSize: 13, marginBottom: 20, padding: 0, fontWeight: 600 }}>← 돌아가기</button>
       {allDone ? (
         <div style={{ textAlign: "center", padding: "32px 0 24px" }}>
           <div style={{ fontSize: 52, marginBottom: 12 }}>🎉</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: "#fff", marginBottom: 8 }}>온보딩 완료!</div>
-          <div style={{ fontSize: 14, color: "#94a3b8", lineHeight: 1.7 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", marginBottom: 8 }}>온보딩 완료!</div>
+          <div style={{ fontSize: 14, color: "#64748b", lineHeight: 1.7 }}>
             {person.name} 님, 첫날 체크리스트를 모두 마치셨어요.<br />셀리맥스 팀과 함께하게 되어 정말 반가워요 😊
           </div>
         </div>
       ) : (
         <div style={{ marginBottom: intro ? 16 : 24 }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: "#fff", marginBottom: 2 }}>안녕하세요, {person.name} 님 👋</div>
-          <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 16 }}>{person.dept} · 입사일 {person.joinDate || person.join_date}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", marginBottom: 2 }}>안녕하세요, {person.name} 님 👋</div>
+          <div style={{ fontSize: 13, color: "#64748b", marginBottom: 16 }}>{person.dept} · 입사일 {person.joinDate || person.join_date}</div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <ProgressBar pct={pct} height={10} />
             <span style={{ fontSize: 14, fontWeight: 700, color: "#f59e0b", minWidth: 36 }}>{pct}%</span>
@@ -634,75 +646,79 @@ function PersonView({ person, links, templateMeta, survey, onBack, onToggle, onS
         </div>
       )}
       {intro && (
-        <div style={{ background: "#1a1a2e", border: "1px solid #3b82f6", borderRadius: 12, padding: "14px 16px", marginBottom: 24, fontSize: 13, color: "#cbd5e1", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
+        <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "14px 16px", marginBottom: 20, fontSize: 13, color: "#1e40af", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
           {intro}
         </div>
       )}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 24 }}>
-        {links.map((l, i) => (
-          l.url
-            ? <a key={i} href={l.url} target="_blank" rel="noreferrer" style={{ background: "#1a1a2e", border: "1px solid #2a2a3a", borderRadius: 10, padding: "10px 12px", textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 18 }}>{l.emoji}</span>
-                <span style={{ fontSize: 12, color: "#cbd5e1", fontWeight: 600 }}>{l.label}</span>
-              </a>
-            : <div key={i} style={{ background: "#1a1a2e", border: "1px solid #1e1e2e", borderRadius: 10, padding: "10px 12px", display: "flex", alignItems: "center", gap: 8, opacity: 0.5 }}>
-                <span style={{ fontSize: 18 }}>{l.emoji}</span>
-                <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>{l.label}</span>
-              </div>
-        ))}
-      </div>
+      {links.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 20 }}>
+          {links.map((l, i) => (
+            l.url
+              ? <a key={i} href={l.url} target="_blank" rel="noreferrer" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 12px", textDecoration: "none", display: "flex", alignItems: "center", gap: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+                  <span style={{ fontSize: 18 }}>{l.emoji}</span>
+                  <span style={{ fontSize: 12, color: "#0f172a", fontWeight: 600 }}>{l.label}</span>
+                </a>
+              : <div key={i} style={{ background: "#f8fafc", border: "1px solid #f1f5f9", borderRadius: 10, padding: "10px 12px", display: "flex", alignItems: "center", gap: 8, opacity: 0.5 }}>
+                  <span style={{ fontSize: 18 }}>{l.emoji}</span>
+                  <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>{l.label}</span>
+                </div>
+          ))}
+        </div>
+      )}
       {person.steps.map((step, si) => {
         const stepPct = Math.round(step.items.filter(i => i.done).length / (step.items.length || 1) * 100);
         const isCollapsed = collapsed[si];
         return (
-          <div key={si} style={{ marginBottom: 16, background: "#1a1a2e", border: `1px solid ${stepPct === 100 ? "#22c55e44" : "#2a2a3a"}`, borderRadius: 12, overflow: "hidden" }}>
-            <div onClick={() => toggleCollapse(si)} style={{ padding: "12px 14px 8px", borderBottom: isCollapsed ? "none" : "1px solid #2a2a3a", cursor: "pointer" }}>
+          <div key={si} style={{ marginBottom: 12, background: "#fff", border: `1px solid ${stepPct === 100 ? "#bbf7d0" : "#e2e8f0"}`, borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div onClick={() => toggleCollapse(si)} style={{ padding: "12px 14px 10px", borderBottom: isCollapsed ? "none" : `1px solid #f1f5f9`, cursor: "pointer", background: stepPct === 100 ? "#f0fdf4" : "#fff" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: isCollapsed ? 0 : 6 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: stepPct === 100 ? "#4ade80" : "#e2e8f0" }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: stepPct === 100 ? "#15803d" : "#0f172a" }}>
                   {stepPct === 100 ? "✅" : "⏳"} {step.label}
                 </span>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 12, color: "#64748b" }}>{step.items.filter(i => i.done).length}/{step.items.length}</span>
-                  <span style={{ fontSize: 11, color: "#64748b" }}>{isCollapsed ? "▼" : "▲"}</span>
+                  <span style={{ fontSize: 12, color: "#94a3b8" }}>{step.items.filter(i => i.done).length}/{step.items.length}</span>
+                  <span style={{ fontSize: 11, color: "#94a3b8" }}>{isCollapsed ? "▼" : "▲"}</span>
                 </div>
               </div>
               {!isCollapsed && <ProgressBar pct={stepPct} height={4} />}
             </div>
             {!isCollapsed && step.desc && (
-              <div style={{ padding: "8px 14px", fontSize: 12, color: "#94a3b8", lineHeight: 1.6, whiteSpace: "pre-wrap", borderBottom: "1px solid #2a2a3a" }}>
+              <div style={{ padding: "8px 14px", fontSize: 12, color: "#64748b", lineHeight: 1.6, whiteSpace: "pre-wrap", borderBottom: "1px solid #f1f5f9", background: "#fafafa" }}>
                 {step.desc}
               </div>
             )}
-            {!isCollapsed && <div style={{ padding: "8px 14px 12px" }}>
-              {step.items.map((item, ii) => (
-                <div key={ii} style={{ padding: "8px 0", borderBottom: ii < step.items.length - 1 ? "1px solid #1e1e2e" : "none" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div onClick={() => onToggle(person.id, si, ii)}
-                      style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${item.done ? "#22c55e" : "#3a3a4a"}`, background: item.done ? "#22c55e" : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", transition: "all .2s", cursor: "pointer" }}>
-                      {item.done && <span style={{ color: "#fff", fontSize: 11, fontWeight: 700 }}>✓</span>}
+            {!isCollapsed && (
+              <div style={{ padding: "8px 14px 12px" }}>
+                {step.items.map((item, ii) => (
+                  <div key={ii} style={{ padding: "8px 0", borderBottom: ii < step.items.length - 1 ? "1px solid #f1f5f9" : "none" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div onClick={() => onToggle(person.id, si, ii)}
+                        style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${item.done ? "#22c55e" : "#d1d5db"}`, background: item.done ? "#22c55e" : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", transition: "all .2s", cursor: "pointer" }}>
+                        {item.done && <span style={{ color: "#fff", fontSize: 11, fontWeight: 700 }}>✓</span>}
+                      </div>
+                      <span onClick={() => onToggle(person.id, si, ii)}
+                        style={{ fontSize: 13, color: item.done ? "#94a3b8" : "#0f172a", textDecoration: item.done ? "line-through" : "none", flex: 1, cursor: "pointer" }}>
+                        {item.text}
+                      </span>
+                      {(item.links?.length ? item.links : item.link ? [{ label: "링크", url: item.link }] : []).filter(l => l.url).map((lnk, li) => (
+                        <a key={li} href={lnk.url} target="_blank" rel="noreferrer"
+                          style={{ flexShrink: 0, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "#2563eb", textDecoration: "none", whiteSpace: "nowrap" }}>
+                          {lnk.label || "링크"} 🔗
+                        </a>
+                      ))}
                     </div>
-                    <span onClick={() => onToggle(person.id, si, ii)}
-                      style={{ fontSize: 13, color: item.done ? "#64748b" : "#e2e8f0", textDecoration: item.done ? "line-through" : "none", flex: 1, cursor: "pointer" }}>
-                      {item.text}
-                    </span>
-                    {(item.links?.length ? item.links : item.link ? [{ label: "링크", url: item.link }] : []).filter(l => l.url).map((lnk, li) => (
-                      <a key={li} href={lnk.url} target="_blank" rel="noreferrer"
-                        style={{ flexShrink: 0, background: "#1e2a4a", border: "1px solid #3b82f6", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "#60a5fa", textDecoration: "none", whiteSpace: "nowrap" }}>
-                        {lnk.label || "링크"} 🔗
-                      </a>
-                    ))}
+                    {item.desc && (
+                      <div style={{ marginTop: 4, marginLeft: 28, fontSize: 12, color: "#94a3b8", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{item.desc}</div>
+                    )}
                   </div>
-                  {item.desc && (
-                    <div style={{ marginTop: 4, marginLeft: 28, fontSize: 12, color: "#64748b", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{item.desc}</div>
-                  )}
-                </div>
-              ))}
-            </div>}
+                ))}
+              </div>
+            )}
           </div>
         );
       })}
       {outro && (
-        <div style={{ marginTop: 8, background: "#1a1a2e", border: "1px solid #f59e0b33", borderRadius: 12, padding: "14px 16px", fontSize: 13, color: "#cbd5e1", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
+        <div style={{ marginTop: 8, background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 12, padding: "14px 16px", fontSize: 13, color: "#92400e", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
           {outro}
         </div>
       )}
@@ -711,8 +727,8 @@ function PersonView({ person, links, templateMeta, survey, onBack, onToggle, onS
           <SurveyForm personId={person.id} existingSurvey={survey} onSubmit={onSubmitSurvey} />
         </div>
       )}
-      <div style={{ marginTop: 16, background: "#1a1a2e", borderRadius: 10, padding: "10px 14px", fontSize: 12, color: "#64748b" }}>
-        문의사항은 HR 담당자 <span style={{ color: "#a78bfa" }}>@hr</span> 에게 슬랙 DM 주세요
+      <div style={{ marginTop: 16, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 14px", fontSize: 12, color: "#94a3b8" }}>
+        문의사항은 HR 담당자 <span style={{ color: "#6366f1", fontWeight: 600 }}>@hr</span> 에게 슬랙 DM 주세요
       </div>
     </div>
   );
@@ -721,7 +737,17 @@ function PersonView({ person, links, templateMeta, survey, onBack, onToggle, onS
 // ── 설정 뷰 ──
 function SettingsView({ deptGroups, onSaveDeptGroups, links, templates, onSaveLinks, onSaveTemplates, onDeleteTemplate }) {
   const [settingsTab, setSettingsTab] = useState("templates");
-  const TAB = (active) => ({ background: active ? "#3b82f6" : "#2a2a3a", border: "none", borderRadius: 8, padding: "7px 16px", color: active ? "#fff" : "#94a3b8", fontSize: 13, fontWeight: active ? 700 : 400, cursor: "pointer" });
+  const TAB = (active) => ({
+    background: active ? "#3b82f6" : "#fff",
+    border: active ? "none" : "1px solid #e2e8f0",
+    borderRadius: 8,
+    padding: "7px 16px",
+    color: active ? "#fff" : "#64748b",
+    fontSize: 13,
+    fontWeight: active ? 700 : 400,
+    cursor: "pointer",
+    boxShadow: active ? "0 1px 3px rgba(59,130,246,0.25)" : "none",
+  });
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [editDeptGroups, setEditDeptGroups] = useState(
     (deptGroups || DEPT_GROUPS).map(g => ({
@@ -743,64 +769,73 @@ function SettingsView({ deptGroups, onSaveDeptGroups, links, templates, onSaveLi
 
   return (
     <div style={{ padding: 24, maxWidth: 760, margin: "0 auto" }}>
-      <div style={{ fontSize: 20, fontWeight: 800, color: "#fff", marginBottom: 20 }}>⚙️ 설정</div>
+      <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", marginBottom: 20 }}>⚙️ 설정</div>
       <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
         <button style={TAB(settingsTab === "templates")} onClick={() => setSettingsTab("templates")}>📋 템플릿 관리</button>
         <button style={TAB(settingsTab === "team")} onClick={() => setSettingsTab("team")}>🏢 팀 관리</button>
       </div>
-      {settingsTab === "templates" && <TemplateManager links={links} templates={templates} onSaveLinks={onSaveLinks} onSaveTemplates={onSaveTemplates} onDeleteTemplate={onDeleteTemplate} />}
-      {settingsTab === "team" && <div style={{ background: "#1a1a2e", border: "1px solid #2a2a3a", borderRadius: 12, padding: 20, marginBottom: 16 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 4 }}>🏢 팀 관리</div>
-        <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 16 }}>본부별 스쿼드/셀을 관리합니다. 입사자 추가 시 드롭다운에 반영됩니다.</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {editDeptGroups.map((group, gi) => (
-            <div key={group._id} style={{ background: "#0f0f1a", border: "1px solid #2a2a3a", borderRadius: 10, padding: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <input value={group.group} onChange={e => setEditDeptGroups(prev => prev.map((g, i) => i === gi ? { ...g, group: e.target.value } : g))}
-                  style={{ flex: 1, background: "#1a1a2e", border: "1px solid #3b82f6", borderRadius: 8, padding: "7px 12px", color: "#fff", fontSize: 14, fontWeight: 700 }} />
-                <button onClick={() => setEditDeptGroups(prev => prev.filter((_, i) => i !== gi))}
-                  style={{ background: "none", border: "1px solid #3b1c1c", borderRadius: 8, padding: "5px 10px", color: "#f87171", cursor: "pointer", fontSize: 12 }}>삭제</button>
-                <div style={{ display: "flex", gap: 4 }}>
-                  <button disabled={gi === 0} onClick={() => setEditDeptGroups(prev => { const a = [...prev]; [a[gi-1], a[gi]] = [a[gi], a[gi-1]]; return a; })}
-                    style={{ background: "#2a2a3a", border: "none", borderRadius: 6, padding: "5px 8px", color: gi === 0 ? "#3a3a4a" : "#94a3b8", cursor: gi === 0 ? "default" : "pointer", fontSize: 12 }}>↑</button>
-                  <button disabled={gi === editDeptGroups.length - 1} onClick={() => setEditDeptGroups(prev => { const a = [...prev]; [a[gi], a[gi+1]] = [a[gi+1], a[gi]]; return a; })}
-                    style={{ background: "#2a2a3a", border: "none", borderRadius: 6, padding: "5px 8px", color: gi === editDeptGroups.length - 1 ? "#3a3a4a" : "#94a3b8", cursor: gi === editDeptGroups.length - 1 ? "default" : "pointer", fontSize: 12 }}>↓</button>
+      {settingsTab === "templates" && (
+        <TemplateManager links={links} templates={templates} onSaveLinks={onSaveLinks} onSaveTemplates={onSaveTemplates} onDeleteTemplate={onDeleteTemplate} />
+      )}
+      {settingsTab === "team" && (
+        <div>
+          <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>🏢 팀 관리</div>
+            <div style={{ fontSize: 13, color: "#64748b", marginBottom: 16 }}>본부별 스쿼드/셀을 관리합니다. 입사자 추가 시 드롭다운에 반영됩니다.</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {editDeptGroups.map((group, gi) => (
+                <div key={group._id} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: 14 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                    <input value={group.group} onChange={e => setEditDeptGroups(prev => prev.map((g, i) => i === gi ? { ...g, group: e.target.value } : g))}
+                      style={{ flex: 1, background: "#fff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "7px 12px", color: "#0f172a", fontSize: 14, fontWeight: 700 }} />
+                    <button onClick={() => setEditDeptGroups(prev => prev.filter((_, i) => i !== gi))}
+                      style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "5px 10px", color: "#ef4444", cursor: "pointer", fontSize: 12 }}>삭제</button>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button disabled={gi === 0} onClick={() => setEditDeptGroups(prev => { const a = [...prev]; [a[gi-1], a[gi]] = [a[gi], a[gi-1]]; return a; })}
+                        style={{ background: "#f1f5f9", border: "none", borderRadius: 6, padding: "5px 8px", color: gi === 0 ? "#cbd5e1" : "#64748b", cursor: gi === 0 ? "default" : "pointer", fontSize: 12 }}>↑</button>
+                      <button disabled={gi === editDeptGroups.length - 1} onClick={() => setEditDeptGroups(prev => { const a = [...prev]; [a[gi], a[gi+1]] = [a[gi+1], a[gi]]; return a; })}
+                        style={{ background: "#f1f5f9", border: "none", borderRadius: 6, padding: "5px 8px", color: gi === editDeptGroups.length - 1 ? "#cbd5e1" : "#64748b", cursor: gi === editDeptGroups.length - 1 ? "default" : "pointer", fontSize: 12 }}>↓</button>
+                    </div>
+                  </div>
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={({ active, over }) => {
+                    if (active.id !== over?.id) {
+                      setEditDeptGroups(prev => prev.map((g, i) => {
+                        if (i !== gi) return g;
+                        const oldIdx = g.depts.findIndex(d => d._id === active.id);
+                        const newIdx = g.depts.findIndex(d => d._id === over.id);
+                        return { ...g, depts: arrayMove(g.depts, oldIdx, newIdx) };
+                      }));
+                    }
+                  }}>
+                    <SortableContext items={group.depts.map(d => d._id)} strategy={verticalListSortingStrategy}>
+                      {group.depts.map((dept, di) => (
+                        <SortableDeptItem key={dept._id} id={dept._id} name={dept.name}
+                          onEdit={val => setEditDeptGroups(prev => prev.map((g, i) => i !== gi ? g : { ...g, depts: g.depts.map((d, j) => j !== di ? d : { ...d, name: val }) }))}
+                          onRemove={() => setEditDeptGroups(prev => prev.map((g, i) => i !== gi ? g : { ...g, depts: g.depts.filter((_, j) => j !== di) }))} />
+                      ))}
+                    </SortableContext>
+                  </DndContext>
+                  <button onClick={() => setEditDeptGroups(prev => prev.map((g, i) => i !== gi ? g : { ...g, depts: [...g.depts, { name: "", _id: `d-${Math.random()}` }] }))}
+                    style={{ marginTop: 8, background: "none", border: "1px dashed #e2e8f0", borderRadius: 8, padding: "5px 12px", color: "#94a3b8", cursor: "pointer", fontSize: 12 }}>
+                    + 스쿼드/셀 추가
+                  </button>
                 </div>
-              </div>
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={({ active, over }) => {
-                if (active.id !== over?.id) {
-                  setEditDeptGroups(prev => prev.map((g, i) => {
-                    if (i !== gi) return g;
-                    const oldIdx = g.depts.findIndex(d => d._id === active.id);
-                    const newIdx = g.depts.findIndex(d => d._id === over.id);
-                    return { ...g, depts: arrayMove(g.depts, oldIdx, newIdx) };
-                  }));
-                }
-              }}>
-                <SortableContext items={group.depts.map(d => d._id)} strategy={verticalListSortingStrategy}>
-                  {group.depts.map((dept, di) => (
-                    <SortableDeptItem key={dept._id} id={dept._id} name={dept.name}
-                      onEdit={val => setEditDeptGroups(prev => prev.map((g, i) => i !== gi ? g : { ...g, depts: g.depts.map((d, j) => j !== di ? d : { ...d, name: val }) }))}
-                      onRemove={() => setEditDeptGroups(prev => prev.map((g, i) => i !== gi ? g : { ...g, depts: g.depts.filter((_, j) => j !== di) }))} />
-                  ))}
-                </SortableContext>
-              </DndContext>
-              <button onClick={() => setEditDeptGroups(prev => prev.map((g, i) => i !== gi ? g : { ...g, depts: [...g.depts, { name: "", _id: `d-${Math.random()}` }] }))}
-                style={{ marginTop: 8, background: "none", border: "1px dashed #2a2a3a", borderRadius: 8, padding: "5px 12px", color: "#64748b", cursor: "pointer", fontSize: 12 }}>
-                + 스쿼드/셀 추가
+              ))}
+              <button onClick={() => setEditDeptGroups(prev => [...prev, { group: "새 본부", _id: `g-${Math.random()}`, depts: [] }])}
+                style={{ background: "#fff", border: "1px dashed #bfdbfe", borderRadius: 10, padding: "10px", color: "#3b82f6", cursor: "pointer", fontSize: 13 }}>
+                + 본부 추가
               </button>
             </div>
-          ))}
-          <button onClick={() => setEditDeptGroups(prev => [...prev, { group: "새 본부", _id: `g-${Math.random()}`, depts: [] }])}
-            style={{ background: "#1a1a2e", border: "1px dashed #3b82f6", borderRadius: 10, padding: "10px", color: "#3b82f6", cursor: "pointer", fontSize: 13 }}>
-            + 본부 추가
-          </button>
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12 }}>
+            {saved && <span style={{ fontSize: 13, color: "#16a34a", fontWeight: 600 }}>✓ 저장되었습니다!</span>}
+            <button onClick={handleSave} disabled={saving}
+              style={{ background: saved ? "#16a34a" : "#3b82f6", border: "none", borderRadius: 10, padding: "11px 28px", color: "#fff", fontWeight: 700, fontSize: 14, cursor: saving ? "default" : "pointer", opacity: saving ? 0.7 : 1, boxShadow: "0 1px 3px rgba(59,130,246,0.3)" }}>
+              {saving ? "저장 중..." : saved ? "✓ 저장됨" : "저장하기"}
+            </button>
+          </div>
         </div>
-      </div>}
-      {settingsTab === "team" && <button onClick={handleSave} disabled={saving}
-        style={{ background: saved ? "#14532d" : "#3b82f6", border: "none", borderRadius: 10, padding: "12px 28px", color: "#fff", fontWeight: 700, fontSize: 14, cursor: saving ? "default" : "pointer", opacity: saving ? 0.7 : 1 }}>
-        {saving ? "저장 중..." : saved ? "✓ 저장됨" : "저장하기"}
-      </button>}
+      )}
     </div>
   );
 }
@@ -808,7 +843,7 @@ function SettingsView({ deptGroups, onSaveDeptGroups, links, templates, onSaveLi
 // ── 만족도 대시보드 ──
 function SatisfactionView({ surveys, people }) {
   if (!surveys.length) return (
-    <div style={{ padding: 24, textAlign: "center", color: "#64748b", paddingTop: 80 }}>
+    <div style={{ padding: 24, textAlign: "center", color: "#94a3b8", paddingTop: 80 }}>
       <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
       <div style={{ fontSize: 14 }}>아직 제출된 설문이 없어요</div>
     </div>
@@ -819,22 +854,22 @@ function SatisfactionView({ surveys, people }) {
   const personMap = Object.fromEntries(people.map(p => [p.id, p]));
   return (
     <div style={{ padding: 24, maxWidth: 720, margin: "0 auto" }}>
-      <div style={{ fontSize: 20, fontWeight: 800, color: "#fff", marginBottom: 24 }}>📊 만족도 현황</div>
+      <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", marginBottom: 24 }}>📊 만족도 현황</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
-        <div style={{ background: "#1a1a2e", borderRadius: 12, padding: "18px 20px", border: "1px solid #2a2a3a" }}>
-          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>평균 점수</div>
-          <div style={{ fontSize: 32, fontWeight: 800, color: "#f59e0b" }}>⭐ {avg}</div>
-          <div style={{ fontSize: 11, color: "#64748b" }}>총 {surveys.length}건 응답</div>
+        <div style={{ background: "#fffbeb", borderRadius: 12, padding: "18px 20px", border: "1px solid #fde68a" }}>
+          <div style={{ fontSize: 12, color: "#92400e", marginBottom: 4, fontWeight: 500 }}>평균 점수</div>
+          <div style={{ fontSize: 32, fontWeight: 800, color: "#d97706" }}>⭐ {avg}</div>
+          <div style={{ fontSize: 11, color: "#a16207" }}>총 {surveys.length}건 응답</div>
         </div>
-        <div style={{ background: "#1a1a2e", borderRadius: 12, padding: "18px 20px", border: "1px solid #2a2a3a" }}>
-          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 8 }}>점수 분포</div>
+        <div style={{ background: "#fff", borderRadius: 12, padding: "18px 20px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8, fontWeight: 500 }}>점수 분포</div>
           {dist.map(d => (
             <div key={d.score} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <span style={{ fontSize: 11, color: "#94a3b8", minWidth: 20 }}>{d.score}점</span>
-              <div style={{ flex: 1, background: "#2a2a3a", borderRadius: 4, height: 8 }}>
+              <span style={{ fontSize: 11, color: "#64748b", minWidth: 20 }}>{d.score}점</span>
+              <div style={{ flex: 1, background: "#f1f5f9", borderRadius: 4, height: 8 }}>
                 <div style={{ width: `${(d.count / max) * 100}%`, background: "#f59e0b", height: 8, borderRadius: 4, transition: "width .4s" }} />
               </div>
-              <span style={{ fontSize: 11, color: "#64748b", minWidth: 16 }}>{d.count}</span>
+              <span style={{ fontSize: 11, color: "#94a3b8", minWidth: 16 }}>{d.count}</span>
             </div>
           ))}
         </div>
@@ -843,16 +878,16 @@ function SatisfactionView({ surveys, people }) {
         {[...surveys].sort((a,b) => new Date(b.submitted_at) - new Date(a.submitted_at)).map(sv => {
           const p = personMap[sv.person_id];
           return (
-            <div key={sv.id} style={{ background: "#1a1a2e", border: "1px solid #2a2a3a", borderRadius: 12, padding: "14px 16px" }}>
+            <div key={sv.id} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "14px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontWeight: 700, color: "#fff", fontSize: 14 }}>{p?.name || "알 수 없음"}</span>
-                  {p && <span style={{ fontSize: 12, color: "#94a3b8", background: "#2a2a3a", borderRadius: 99, padding: "1px 8px" }}>{p.dept}</span>}
+                  <span style={{ fontWeight: 700, color: "#0f172a", fontSize: 14 }}>{p?.name || "알 수 없음"}</span>
+                  {p && <span style={{ fontSize: 12, color: "#64748b", background: "#f1f5f9", borderRadius: 99, padding: "1px 8px" }}>{p.dept}</span>}
                 </div>
                 <span style={{ fontSize: 14, color: "#f59e0b" }}>{"⭐".repeat(sv.score)}</span>
               </div>
-              {sv.feedback && <div style={{ fontSize: 13, color: "#cbd5e1", lineHeight: 1.6 }}>{sv.feedback}</div>}
-              <div style={{ fontSize: 11, color: "#64748b", marginTop: 6 }}>{new Date(sv.submitted_at).toLocaleDateString('ko-KR')}</div>
+              {sv.feedback && <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.6 }}>{sv.feedback}</div>}
+              <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 6 }}>{new Date(sv.submitted_at).toLocaleDateString('ko-KR')}</div>
             </div>
           );
         })}
@@ -861,39 +896,40 @@ function SatisfactionView({ surveys, people }) {
   );
 }
 
+// ── 입사자 카드 ──
 function PersonCard({ d, templates, copied, onSelect, onCopy, onDelete }) {
   const pct = calcProgress(d.steps);
   const joinDate = d.join_date || d.joinDate;
   const dayDiff = joinDate ? Math.floor((new Date() - new Date(joinDate)) / 86400000) : null;
   const dayLabel = dayDiff !== null ? (dayDiff === 0 ? "D-Day" : dayDiff > 0 ? `D+${dayDiff}` : `D${dayDiff}`) : null;
   return (
-    <div onClick={() => onSelect(d.id)} style={{ background: "#1a1a2e", border: "1px solid #2a2a3a", borderRadius: 12, padding: "14px 16px", cursor: "pointer" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+    <div onClick={() => onSelect(d.id)} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 14, padding: "16px 18px", cursor: "pointer", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", transition: "box-shadow .15s" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontWeight: 700, fontSize: 15, color: "#fff" }}>{d.name}</span>
-          <span style={{ fontSize: 12, color: "#94a3b8", background: "#2a2a3a", borderRadius: 99, padding: "1px 8px" }}>{d.dept}</span>
-          <span style={{ fontSize: 11, color: "#6366f1", background: "#1e1e3a", borderRadius: 99, padding: "1px 8px" }}>{templates[d.template_key || d.templateKey]?.name || "기본"}</span>
-          {dayLabel && <span style={{ fontSize: 11, color: dayDiff <= 1 ? "#f59e0b" : "#64748b", background: "#2a2a3a", borderRadius: 99, padding: "1px 8px" }}>{dayLabel}</span>}
-          {joinDate && <span style={{ fontSize: 11, color: "#64748b" }}>{joinDate}</span>}
+          <span style={{ fontWeight: 700, fontSize: 15, color: "#0f172a" }}>{d.name}</span>
+          <span style={{ fontSize: 12, color: "#64748b", background: "#f1f5f9", borderRadius: 99, padding: "2px 9px" }}>{d.dept}</span>
+          <span style={{ fontSize: 11, color: "#6366f1", background: "#f5f3ff", borderRadius: 99, padding: "2px 9px" }}>{templates[d.template_key || d.templateKey]?.name || "기본"}</span>
+          {dayLabel && <span style={{ fontSize: 11, color: dayDiff <= 1 ? "#d97706" : "#94a3b8", background: dayDiff <= 1 ? "#fffbeb" : "#f8fafc", border: `1px solid ${dayDiff <= 1 ? "#fde68a" : "#e2e8f0"}`, borderRadius: 99, padding: "2px 9px", fontWeight: 600 }}>{dayLabel}</span>}
+          {joinDate && <span style={{ fontSize: 11, color: "#94a3b8" }}>{joinDate}</span>}
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
           <button onClick={(e) => onCopy(e, d.id)}
-            style={{ background: copied === d.id ? "#14532d" : "#1e2a4a", border: `1px solid ${copied === d.id ? "#22c55e" : "#3b82f6"}`, borderRadius: 6, padding: "4px 10px", fontSize: 11, color: copied === d.id ? "#4ade80" : "#60a5fa", cursor: "pointer", whiteSpace: "nowrap" }}>
+            style={{ background: copied === d.id ? "#f0fdf4" : "#eff6ff", border: `1px solid ${copied === d.id ? "#bbf7d0" : "#bfdbfe"}`, borderRadius: 6, padding: "4px 10px", fontSize: 11, color: copied === d.id ? "#16a34a" : "#2563eb", cursor: "pointer", whiteSpace: "nowrap" }}>
             {copied === d.id ? "✓ 복사됨" : "🔗 링크 복사"}
           </button>
           <button onClick={(e) => { e.stopPropagation(); if (window.confirm(`${d.name} 님을 삭제할까요?`)) onDelete(d.id); }}
-            style={{ background: "none", border: "1px solid #3b1c1c", borderRadius: 6, padding: "4px 8px", fontSize: 11, color: "#f87171", cursor: "pointer" }}>삭제</button>
-          <span style={{ fontSize: 12, color: "#6366f1" }}>개인 뷰 →</span>
+            style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 6, padding: "4px 8px", fontSize: 11, color: "#ef4444", cursor: "pointer" }}>삭제</button>
+          <span style={{ fontSize: 12, color: "#6366f1", fontWeight: 600 }}>보기 →</span>
         </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
         <ProgressBar pct={pct} />
-        <span style={{ fontSize: 13, fontWeight: 700, color: pct === 100 ? "#4ade80" : "#f59e0b", minWidth: 36 }}>{pct}%</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: pct === 100 ? "#16a34a" : "#f59e0b", minWidth: 36 }}>{pct}%</span>
       </div>
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
         {d.steps.map((s, i) => {
           const sPct = Math.round(s.items.filter(it => it.done).length / (s.items.length || 1) * 100);
-          return <span key={i} style={{ fontSize: 11, borderRadius: 6, padding: "2px 8px", background: sPct === 100 ? "#14532d" : "#3b1c1c", color: sPct === 100 ? "#4ade80" : "#f87171" }}>{i+1}단계 {sPct === 100 ? "✓" : `${sPct}%`}</span>;
+          return <span key={i} style={{ fontSize: 11, borderRadius: 6, padding: "2px 8px", background: sPct === 100 ? "#f0fdf4" : "#fff7ed", color: sPct === 100 ? "#15803d" : "#c2410c", border: `1px solid ${sPct === 100 ? "#bbf7d0" : "#fed7aa"}` }}>{i+1}단계 {sPct === 100 ? "✓" : `${sPct}%`}</span>;
         })}
       </div>
     </div>
@@ -943,67 +979,70 @@ function HRView({ data, links, templates, deptGroups, onSelect, onAdd, onDelete 
   const active = filtered.filter(d => calcProgress(d.steps) < 100);
   const completed = filtered.filter(d => calcProgress(d.steps) === 100);
 
-  const CHIP = (active) => ({
-    background: active ? "#1e2a4a" : "#1a1a2e", border: `1px solid ${active ? "#3b82f6" : "#2a2a3a"}`,
-    borderRadius: 99, padding: "5px 12px", color: active ? "#60a5fa" : "#64748b",
-    fontSize: 12, cursor: "pointer", fontWeight: active ? 700 : 400,
+  const CHIP = (isActive) => ({
+    background: isActive ? "#eff6ff" : "#f8fafc",
+    border: `1px solid ${isActive ? "#bfdbfe" : "#e2e8f0"}`,
+    borderRadius: 99,
+    padding: "5px 12px",
+    color: isActive ? "#2563eb" : "#64748b",
+    fontSize: 12,
+    cursor: "pointer",
+    fontWeight: isActive ? 700 : 400,
   });
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: 24, maxWidth: 900, margin: "0 auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         <div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: "#fff", marginBottom: 4 }}>🧑‍💼 신규입사자 온보딩 현황</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>신규입사자 온보딩 현황</div>
           <div style={{ fontSize: 13, color: "#94a3b8" }}>총 {data.length}명 관리 중</div>
         </div>
         <button onClick={() => setShowModal(true)}
-          style={{ background: "#3b82f6", border: "none", borderRadius: 10, padding: "10px 16px", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+          style={{ background: "#3b82f6", border: "none", borderRadius: 10, padding: "10px 18px", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", boxShadow: "0 1px 3px rgba(59,130,246,0.35)" }}>
           ➕ 입사자 추가
         </button>
       </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
         {[
-          { label: "전체 인원", value: `${data.length}명` },
-          { label: "온보딩 완료", value: `${totalDone}명`, sub: `${data.length ? Math.round(totalDone / data.length * 100) : 0}%` },
-          { label: "평균 진행률", value: `${avg || 0}%` },
+          { label: "전체 인원", value: `${data.length}명`, icon: "👥" },
+          { label: "온보딩 완료", value: `${totalDone}명`, sub: `${data.length ? Math.round(totalDone / data.length * 100) : 0}% 완료`, icon: "✅" },
+          { label: "평균 진행률", value: `${avg || 0}%`, icon: "📈" },
         ].map((c, i) => (
-          <div key={i} style={{ background: "#1a1a2e", borderRadius: 12, padding: "14px 18px", border: "1px solid #2a2a3a" }}>
-            <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>{c.label}</div>
-            <div style={{ fontSize: 26, fontWeight: 800, color: "#fff" }}>{c.value}</div>
-            {c.sub && <div style={{ fontSize: 11, color: "#64748b" }}>{c.sub} 완료</div>}
+          <div key={i} style={{ background: "#fff", borderRadius: 14, padding: "16px 20px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+            <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 6, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em" }}>{c.label}</div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: "#0f172a" }}>{c.value}</div>
+            {c.sub && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{c.sub}</div>}
           </div>
         ))}
       </div>
 
-      {/* 필터 */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20, background: "#1a1a2e", borderRadius: 12, padding: "12px 14px", border: "1px solid #2a2a3a" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20, background: "#fff", borderRadius: 12, padding: "14px 16px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 11, color: "#64748b", minWidth: 36 }}>본부</span>
+          <span style={{ fontSize: 11, color: "#94a3b8", minWidth: 36, fontWeight: 600 }}>본부</span>
           {groupNames.map(g => <button key={g} style={CHIP(filterGroup === g)} onClick={() => setFilterGroup(g)}>{g}</button>)}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 11, color: "#64748b", minWidth: 36 }}>상태</span>
+          <span style={{ fontSize: 11, color: "#94a3b8", minWidth: 36, fontWeight: 600 }}>상태</span>
           {["전체","미시작","진행중","완료"].map(s => <button key={s} style={CHIP(filterStatus === s)} onClick={() => setFilterStatus(s)}>{s}</button>)}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 11, color: "#64748b", minWidth: 36 }}>템플릿</span>
+          <span style={{ fontSize: 11, color: "#94a3b8", minWidth: 36, fontWeight: 600 }}>템플릿</span>
           {templateNames.map(t => <button key={t} style={CHIP(filterTemplate === t)} onClick={() => setFilterTemplate(t)}>{t}</button>)}
         </div>
       </div>
 
-      {/* 진행중 목록 */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {active.length === 0 && <div style={{ textAlign: "center", color: "#64748b", fontSize: 13, padding: "20px 0" }}>조건에 맞는 입사자가 없어요</div>}
+        {active.length === 0 && <div style={{ textAlign: "center", color: "#94a3b8", fontSize: 13, padding: "20px 0" }}>조건에 맞는 입사자가 없어요</div>}
         {active.map(d => <PersonCard key={d.id} d={d} templates={templates} copied={copied} onSelect={onSelect} onCopy={copyLink} onDelete={onDelete} />)}
       </div>
 
-      {/* 완료 그룹 */}
       {completed.length > 0 && (
         <div style={{ marginTop: 20 }}>
           <button onClick={() => setShowCompleted(v => !v)}
-            style={{ display: "flex", alignItems: "center", gap: 8, background: "#1a1a2e", border: "1px solid #2a2a3a", borderRadius: 10, padding: "10px 16px", color: "#4ade80", fontSize: 13, fontWeight: 700, cursor: "pointer", width: "100%" }}>
+            style={{ display: "flex", alignItems: "center", gap: 8, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, padding: "12px 18px", color: "#15803d", fontSize: 13, fontWeight: 700, cursor: "pointer", width: "100%" }}>
             <span>✅ 온보딩 완료 ({completed.length}명)</span>
-            <span style={{ marginLeft: "auto", fontSize: 12 }}>{showCompleted ? "▲ 접기" : "▼ 펼치기"}</span>
+            <span style={{ marginLeft: "auto", fontSize: 12, color: "#86efac" }}>{showCompleted ? "▲ 접기" : "▼ 펼치기"}</span>
           </button>
           {showCompleted && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
@@ -1072,7 +1111,7 @@ function PersonRoute() {
 
   if (loading) return <LoadingScreen />;
   if (!person) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", color: "#94a3b8", fontSize: 14 }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", color: "#94a3b8", fontSize: 14, background: "#f8fafc" }}>
       입사자를 찾을 수 없습니다.
     </div>
   );
@@ -1206,12 +1245,12 @@ function HRApp() {
   if (loading) return <LoadingScreen />;
   return (
     <>
-      <div style={{ borderBottom: "1px solid #2a2a3a", padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 15, fontWeight: 800, color: "#fff", letterSpacing: "-0.3px" }}>셀리맥스 온보딩</span>
-        <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ borderBottom: "1px solid #e2e8f0", padding: "0 24px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", height: 56, position: "sticky", top: 0, zIndex: 100 }}>
+        <span style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.3px" }}>셀리맥스 온보딩</span>
+        <div style={{ display: "flex", gap: 2 }}>
           {NAV_ITEMS.map(item => (
             <button key={item.key} onClick={() => setView(item.key)}
-              style={{ background: view === item.key ? "#1e2a4a" : "none", border: `1px solid ${view === item.key ? "#3b82f6" : "#2a2a3a"}`, borderRadius: 8, padding: "7px 14px", color: view === item.key ? "#60a5fa" : "#94a3b8", fontSize: 13, fontWeight: view === item.key ? 700 : 400, cursor: "pointer" }}>
+              style={{ background: view === item.key ? "#eff6ff" : "transparent", border: "none", borderRadius: 8, padding: "7px 14px", color: view === item.key ? "#2563eb" : "#64748b", fontSize: 13, fontWeight: view === item.key ? 700 : 400, cursor: "pointer" }}>
               {item.label}
             </button>
           ))}
@@ -1244,7 +1283,7 @@ function HRApp() {
 export default function App() {
   return (
     <BrowserRouter>
-      <div style={{ fontFamily: "'Pretendard','Apple SD Gothic Neo',sans-serif", background: "#0f0f1a", minHeight: "100vh", color: "#e2e8f0" }}>
+      <div style={{ fontFamily: "'Pretendard','Apple SD Gothic Neo',sans-serif", background: "#f8fafc", minHeight: "100vh", color: "#0f172a" }}>
         <Routes>
           <Route path="/" element={<HRApp />} />
           <Route path="/person/:id" element={<PersonRoute />} />
