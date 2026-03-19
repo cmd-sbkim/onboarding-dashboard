@@ -1099,7 +1099,7 @@ function HRApp() {
       })
       .subscribe();
     return () => supabase.removeChannel(channel);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function seedData() {
     await supabase.from('links').insert(DEFAULT_LINKS.map(({ order_index, ...l }) => ({ ...l, order_index })));
