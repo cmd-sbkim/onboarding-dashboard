@@ -688,7 +688,7 @@ function PersonView({ person, links, templateMeta, survey, onBack, onToggle, onS
   const toggleCollapse = (si) => setCollapsed(prev => ({ ...prev, [si]: !prev[si] }));
   return (
     <div style={{ maxWidth: 560, margin: "0 auto", padding: "24px 16px" }}>
-      <button onClick={onBack} style={{ background: "none", border: "none", color: "#6366f1", cursor: "pointer", fontSize: 13, marginBottom: 20, padding: 0, fontWeight: 600 }}>← 돌아가기</button>
+      {onBack && <button onClick={onBack} style={{ background: "none", border: "none", color: "#6366f1", cursor: "pointer", fontSize: 13, marginBottom: 20, padding: 0, fontWeight: 600 }}>← 돌아가기</button>}
       {allDone ? (
         <div style={{ textAlign: "center", padding: "32px 0 24px" }}>
           <div style={{ fontSize: 52, marginBottom: 12 }}>🎉</div>
@@ -1181,7 +1181,7 @@ function PersonRoute() {
       입사자를 찾을 수 없습니다.
     </div>
   );
-  return <PersonView person={person} links={links} templateMeta={templateMeta} survey={survey} onBack={() => navigate('/')} onToggle={toggleItem} onSubmitSurvey={submitSurvey} />;
+  return <PersonView person={person} links={links} templateMeta={templateMeta} survey={survey} onToggle={toggleItem} onSubmitSurvey={submitSurvey} />;
 }
 
 // ── HR 앱 ──
