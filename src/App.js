@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { QRCodeCanvas } from 'qrcode.react';
 import { BrowserRouter, Routes, Route, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "./supabaseClient";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -92,6 +93,16 @@ const DEFAULT_TEMPLATES = {
     ]
   }
 };
+
+function useWindowSize() {
+  const [width, setWidth] = useState(window.innerWidth);
+  useEffect(() => {
+    const handler = () => setWidth(window.innerWidth);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return { isMobile: width < 640 };
+}
 
 const normalizeItem = (item) => {
   const { link, ...rest } = item;
@@ -502,7 +513,7 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
 // ── 입사자 추가 모달 ──
 function AddModal({ onAdd, onClose, templates, deptGroups: dg }) {
   const groups = (dg && dg.length > 0) ? dg : DEPT_GROUPS;
-  const [form, setForm] = useState({ name: "", deptGroup: groups[0].group, dept: groups[0].depts[0] || "", joinDate: new Date().toISOString().slice(0, 10), templateKey: Object.keys(templates)[0] });
+  const [form, setForm] = useState({ name: "", phone: "", deptGroup: groups[0].group, dept: groups[0].depts[0] || "", joinDate: new Date().toISOString().slice(0, 10), templateKey: Object.keys(templates)[0] });
   const [adding, setAdding] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const currentGroup = groups.find(g => g.group === form.deptGroup) || groups[0];
@@ -512,6 +523,7 @@ function AddModal({ onAdd, onClose, templates, deptGroups: dg }) {
         <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", marginBottom: 20 }}>➕ 신규 입사자 추가</div>
         {[
           { label: "이름", key: "name", type: "text", placeholder: "홍길동" },
+          { label: "핸드폰 번호", key: "phone", type: "tel", placeholder: "01000000000" },
           { label: "입사일", key: "joinDate", type: "date" },
         ].map(f => (
           <div key={f.key} style={{ marginBottom: 14 }}>
@@ -576,6 +588,7 @@ function EditModal({ person, onUpdate, onClose, deptGroups: dg }) {
   const findGroup = () => groups.find(g => g.depts.includes(person.dept))?.group || groups[0].group;
   const [form, setForm] = useState({
     name: person.name || "",
+    phone: person.phone || "",
     deptGroup: findGroup(),
     dept: person.dept || "",
     joinDate: person.join_date || person.joinDate || "",
@@ -591,6 +604,7 @@ function EditModal({ person, onUpdate, onClose, deptGroups: dg }) {
         <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 20 }}>{person.name} 님의 정보를 수정합니다</div>
         {[
           { label: "이름", key: "name", type: "text", placeholder: "홍길동" },
+          { label: "핸드폰 번호", key: "phone", type: "tel", placeholder: "01000000000" },
           { label: "입사일", key: "joinDate", type: "date" },
         ].map(f => (
           <div key={f.key} style={{ marginBottom: 14 }}>
@@ -621,7 +635,7 @@ function EditModal({ person, onUpdate, onClose, deptGroups: dg }) {
           <button disabled={saving} onClick={async () => {
             if (!form.name.trim()) return alert("이름을 입력해주세요");
             setSaving(true);
-            await onUpdate(person.id, { name: form.name, dept: form.dept, join_date: form.joinDate });
+            await onUpdate(person.id, { name: form.name, phone: form.phone, dept: form.dept, join_date: form.joinDate });
             onClose();
           }} style={{ flex: 2, background: "#3b82f6", border: "none", borderRadius: 8, padding: "10px", color: "#fff", cursor: saving ? "default" : "pointer", fontSize: 13, fontWeight: 700, opacity: saving ? 0.7 : 1 }}>
             {saving ? "저장 중..." : "수정 완료"}
@@ -677,17 +691,69 @@ function SurveyForm({ personId, existingSurvey, onSubmit }) {
 }
 
 // ── 입사자 개인 뷰 ──
+// ── QR 입장 페이지 ──
+function OnboardGate() {
+  const navigate = useNavigate();
+  const [phone, setPhone] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async () => {
+    const cleaned = phone.replace(/\D/g, "");
+    if (!cleaned) return setError("핸드폰 번호를 입력해주세요");
+    setLoading(true);
+    setError("");
+    const { data } = await supabase.from('people').select('id').eq('phone', cleaned).maybeSingle();
+    if (data) {
+      navigate(`/person/${data.id}`);
+    } else {
+      setError("등록된 정보가 없습니다. HR 담당자에게 문의해주세요.");
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: "linear-gradient(160deg, #eff6ff 0%, #f0fdf4 100%)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ background: "#fff", borderRadius: 24, padding: "48px 32px", maxWidth: 360, width: "100%", boxShadow: "0 24px 64px rgba(0,0,0,0.1)", textAlign: "center" }}>
+        <div style={{ fontSize: 52, marginBottom: 16 }}>👋</div>
+        <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", marginBottom: 8, lineHeight: 1.3 }}>셀리맥스에<br/>오신 걸 환영해요!</div>
+        <div style={{ fontSize: 14, color: "#64748b", marginBottom: 36, lineHeight: 1.8 }}>핸드폰 번호를 입력하면<br/>나의 온보딩 페이지로 이동해요</div>
+        <input
+          type="tel"
+          inputMode="numeric"
+          placeholder="01000000000"
+          value={phone}
+          onChange={e => { setPhone(e.target.value); setError(""); }}
+          onKeyDown={e => e.key === "Enter" && handleSubmit()}
+          style={{ width: "100%", background: "#f8fafc", border: `2px solid ${error ? "#fca5a5" : "#e2e8f0"}`, borderRadius: 14, padding: "16px", color: "#0f172a", fontSize: 18, boxSizing: "border-box", textAlign: "center", letterSpacing: 2, outline: "none", marginBottom: 8, fontFamily: "inherit" }}
+        />
+        {error && <div style={{ fontSize: 13, color: "#ef4444", marginBottom: 12, lineHeight: 1.5 }}>{error}</div>}
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          style={{ width: "100%", background: loading ? "#93c5fd" : "#3b82f6", border: "none", borderRadius: 14, padding: "16px", color: "#fff", fontSize: 16, fontWeight: 700, cursor: loading ? "default" : "pointer", marginTop: 4, boxShadow: "0 4px 16px rgba(59,130,246,0.35)", transition: "background .2s" }}>
+          {loading ? "확인 중..." : "입장하기 →"}
+        </button>
+        <div style={{ marginTop: 28, fontSize: 12, color: "#94a3b8", lineHeight: 1.8 }}>
+          문제가 있으신가요?<br/><span style={{ color: "#6366f1", fontWeight: 600 }}>@hr</span> 에게 슬랙 DM 주세요
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PersonView({ person, links, templateMeta, survey, onBack, onToggle, onSubmitSurvey }) {
   const pct = calcProgress(person.steps);
   const allDone = pct === 100;
   const intro = templateMeta?.intro || "";
   const outro = templateMeta?.outro || "";
+  const { isMobile } = useWindowSize();
   const [collapsed, setCollapsed] = useState(() =>
     Object.fromEntries(person.steps.map((s, i) => [i, Math.round(s.items.filter(it => it.done).length / (s.items.length || 1) * 100) === 100]))
   );
   const toggleCollapse = (si) => setCollapsed(prev => ({ ...prev, [si]: !prev[si] }));
   return (
-    <div style={{ maxWidth: 560, margin: "0 auto", padding: "24px 16px" }}>
+    <div style={{ maxWidth: 560, margin: "0 auto", padding: isMobile ? "16px 12px" : "24px 16px" }}>
       {onBack && <button onClick={onBack} style={{ background: "none", border: "none", color: "#6366f1", cursor: "pointer", fontSize: 13, marginBottom: 20, padding: 0, fontWeight: 600 }}>← 돌아가기</button>}
       {allDone ? (
         <div style={{ textAlign: "center", padding: "32px 0 24px" }}>
@@ -713,7 +779,7 @@ function PersonView({ person, links, templateMeta, survey, onBack, onToggle, onS
         </div>
       )}
       {links.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8, marginBottom: 20 }}>
           {links.map((l, i) => (
             l.url
               ? <a key={i} href={l.url} target="_blank" rel="noreferrer" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 12px", textDecoration: "none", display: "flex", alignItems: "center", gap: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
@@ -755,7 +821,7 @@ function PersonView({ person, links, templateMeta, survey, onBack, onToggle, onS
                   <div key={ii} style={{ padding: "8px 0", borderBottom: ii < step.items.length - 1 ? "1px solid #f1f5f9" : "none" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <div onClick={() => onToggle(person.id, si, ii)}
-                        style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${item.done ? "#22c55e" : "#d1d5db"}`, background: item.done ? "#22c55e" : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", transition: "all .2s", cursor: "pointer" }}>
+                        style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${item.done ? "#22c55e" : "#d1d5db"}`, background: item.done ? "#22c55e" : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", transition: "all .2s", cursor: "pointer", minWidth: 22 }}>
                         {item.done && <span style={{ color: "#fff", fontSize: 11, fontWeight: 700 }}>✓</span>}
                       </div>
                       <span onClick={() => onToggle(person.id, si, ii)}
@@ -835,9 +901,30 @@ function SettingsView({ deptGroups, onSaveDeptGroups, links, templates, onSaveLi
       <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
         <button style={TAB(settingsTab === "templates")} onClick={() => setSettingsTab("templates")}>📋 템플릿 관리</button>
         <button style={TAB(settingsTab === "team")} onClick={() => setSettingsTab("team")}>🏢 팀 관리</button>
+        <button style={TAB(settingsTab === "qr")} onClick={() => setSettingsTab("qr")}>📱 QR코드</button>
       </div>
       {settingsTab === "templates" && (
         <TemplateManager links={links} templates={templates} onSaveLinks={onSaveLinks} onSaveTemplates={onSaveTemplates} onDeleteTemplate={onDeleteTemplate} />
+      )}
+      {settingsTab === "qr" && (
+        <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: 28, textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>📱 신규입사자 QR코드</div>
+          <div style={{ fontSize: 13, color: "#64748b", marginBottom: 28 }}>모든 신규입사자에게 동일한 QR코드를 제공합니다.<br/>스캔하면 핸드폰 번호 입력 후 본인 페이지로 이동해요.</div>
+          <div style={{ justifyContent: "center", marginBottom: 20, padding: 16, background: "#f8fafc", borderRadius: 12, border: "1px solid #e2e8f0", display: "inline-block" }}>
+            <QRCodeCanvas id="qr-canvas" value={`${window.location.origin}/onboard`} size={200} level="H" />
+          </div>
+          <div style={{ fontSize: 12, color: "#94a3b8", margin: "16px 0", background: "#f8fafc", borderRadius: 8, padding: "8px 12px", wordBreak: "break-all" }}>{window.location.origin}/onboard</div>
+          <button onClick={() => {
+            const canvas = document.getElementById('qr-canvas');
+            if (!canvas) return;
+            const link = document.createElement('a');
+            link.download = '온보딩QR.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+          }} style={{ background: "#3b82f6", border: "none", borderRadius: 10, padding: "11px 28px", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: "0 1px 3px rgba(59,130,246,0.3)" }}>
+            ⬇️ QR코드 다운로드
+          </button>
+        </div>
       )}
       {settingsTab === "team" && (
         <div>
@@ -1125,7 +1212,6 @@ function HRView({ data, links, templates, deptGroups, onSelect, onAdd, onDelete,
 // ── 개인 URL 라우트 ──
 function PersonRoute() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [person, setPerson] = useState(null);
   const [links, setLinks] = useState([]);
   const [templateMeta, setTemplateMeta] = useState(null);
@@ -1298,6 +1384,7 @@ function HRApp() {
   const addPerson = async (person) => {
     const { data: inserted } = await supabase.from('people').insert({
       name: person.name,
+      phone: person.phone || '',
       dept: person.dept,
       join_date: person.joinDate,
       slack_id: '',
@@ -1358,6 +1445,7 @@ export default function App() {
       <div style={{ fontFamily: "'Pretendard','Apple SD Gothic Neo',sans-serif", background: "#f8fafc", minHeight: "100vh", color: "#0f172a" }}>
         <Routes>
           <Route path="/" element={<HRApp />} />
+          <Route path="/onboard" element={<OnboardGate />} />
           <Route path="/person/:id" element={<PersonRoute />} />
         </Routes>
       </div>
