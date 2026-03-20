@@ -735,7 +735,7 @@ function OnboardGate() {
           {loading ? "확인 중..." : "입장하기 →"}
         </button>
         <div style={{ marginTop: 28, fontSize: 12, color: "#94a3b8", lineHeight: 1.8 }}>
-          문제가 있으신가요?<br/><span style={{ color: "#6366f1", fontWeight: 600 }}>@hr</span> 에게 슬랙 DM 주세요
+          문제가 있으신가요?<br/>HR 담당자에게 연락해주세요<br/><span style={{ color: "#0f172a", fontWeight: 700 }}>📞 010-5647-2610</span>
         </div>
       </div>
     </div>
@@ -855,8 +855,8 @@ function PersonView({ person, links, templateMeta, survey, onBack, onToggle, onS
           <SurveyForm personId={person.id} existingSurvey={survey} onSubmit={onSubmitSurvey} />
         </div>
       )}
-      <div style={{ marginTop: 16, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 14px", fontSize: 12, color: "#94a3b8" }}>
-        문의사항은 HR 담당자 <span style={{ color: "#6366f1", fontWeight: 600 }}>@hr</span> 에게 슬랙 DM 주세요
+      <div style={{ marginTop: 16, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 14px", fontSize: 12, color: "#94a3b8", lineHeight: 1.7 }}>
+        문의사항은 슬랙 <span style={{ color: "#6366f1", fontWeight: 600 }}>#hr_문의</span> 채널에 <span style={{ color: "#6366f1", fontWeight: 600 }}>@hr_인사운영</span> 태그하시어 문의해주세요
       </div>
     </div>
   );
