@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { QRCodeCanvas } from 'qrcode.react';
-import { BrowserRouter, Routes, Route, useNavigate, useParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "./supabaseClient";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -513,7 +513,7 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
 // ── 입사자 추가 모달 ──
 function AddModal({ onAdd, onClose, templates, deptGroups: dg }) {
   const groups = (dg && dg.length > 0) ? dg : DEPT_GROUPS;
-  const [form, setForm] = useState({ name: "", phone: "", deptGroup: groups[0].group, dept: groups[0].depts[0] || "", joinDate: new Date().toISOString().slice(0, 10), templateKey: Object.keys(templates)[0] });
+  const [form, setForm] = useState({ name: "", phone: "", googleAccount: "", deptGroup: groups[0].group, dept: groups[0].depts[0] || "", joinDate: new Date().toISOString().slice(0, 10), templateKey: Object.keys(templates)[0] });
   const [adding, setAdding] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const currentGroup = groups.find(g => g.group === form.deptGroup) || groups[0];
@@ -524,6 +524,7 @@ function AddModal({ onAdd, onClose, templates, deptGroups: dg }) {
         {[
           { label: "이름", key: "name", type: "text", placeholder: "홍길동" },
           { label: "핸드폰 번호", key: "phone", type: "tel", placeholder: "01000000000" },
+          { label: "구글 계정", key: "googleAccount", type: "email", placeholder: "example@gmail.com" },
           { label: "입사일", key: "joinDate", type: "date" },
         ].map(f => (
           <div key={f.key} style={{ marginBottom: 14 }}>
@@ -589,6 +590,7 @@ function EditModal({ person, onUpdate, onClose, deptGroups: dg }) {
   const [form, setForm] = useState({
     name: person.name || "",
     phone: person.phone || "",
+    googleAccount: person.google_account || "",
     deptGroup: findGroup(),
     dept: person.dept || "",
     joinDate: person.join_date || person.joinDate || "",
@@ -605,6 +607,7 @@ function EditModal({ person, onUpdate, onClose, deptGroups: dg }) {
         {[
           { label: "이름", key: "name", type: "text", placeholder: "홍길동" },
           { label: "핸드폰 번호", key: "phone", type: "tel", placeholder: "01000000000" },
+          { label: "구글 계정", key: "googleAccount", type: "email", placeholder: "example@gmail.com" },
           { label: "입사일", key: "joinDate", type: "date" },
         ].map(f => (
           <div key={f.key} style={{ marginBottom: 14 }}>
@@ -635,7 +638,7 @@ function EditModal({ person, onUpdate, onClose, deptGroups: dg }) {
           <button disabled={saving} onClick={async () => {
             if (!form.name.trim()) return alert("이름을 입력해주세요");
             setSaving(true);
-            await onUpdate(person.id, { name: form.name, phone: form.phone, dept: form.dept, join_date: form.joinDate });
+            await onUpdate(person.id, { name: form.name, phone: form.phone, google_account: form.googleAccount, dept: form.dept, join_date: form.joinDate });
             onClose();
           }} style={{ flex: 2, background: "#3b82f6", border: "none", borderRadius: 8, padding: "10px", color: "#fff", cursor: saving ? "default" : "pointer", fontSize: 13, fontWeight: 700, opacity: saving ? 0.7 : 1 }}>
             {saving ? "저장 중..." : "수정 완료"}
@@ -809,7 +812,16 @@ function PersonView({ person, links, templateMeta, survey, onBack, onToggle, onS
       ) : (
         <div style={{ marginBottom: intro ? 16 : 24 }}>
           <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", marginBottom: 2 }}>안녕하세요, {person.name} 님 👋</div>
-          <div style={{ fontSize: 13, color: "#64748b", marginBottom: 16 }}>{person.dept} · 입사일 {person.joinDate || person.join_date}</div>
+          <div style={{ fontSize: 13, color: "#64748b", marginBottom: person.google_account ? 12 : 16 }}>{person.dept} · 입사일 {person.joinDate || person.join_date}</div>
+          {person.google_account && (
+            <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "10px 14px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 18 }}>📧</span>
+              <div>
+                <div style={{ fontSize: 11, color: "#2563eb", fontWeight: 700, marginBottom: 1 }}>Google 계정</div>
+                <div style={{ fontSize: 13, color: "#1e40af", fontWeight: 600 }}>{person.google_account}</div>
+              </div>
+            </div>
+          )}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <ProgressBar pct={pct} height={10} />
             <span style={{ fontSize: 14, fontWeight: 700, color: "#f59e0b", minWidth: 36 }}>{pct}%</span>
@@ -1273,6 +1285,9 @@ function HRView({ data, links, templates, deptGroups, onSelect, onAdd, onDelete,
 // ── 개인 URL 라우트 ──
 function PersonRoute() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const fromHR = searchParams.get('from') === 'hr';
   const [person, setPerson] = useState(null);
   const [links, setLinks] = useState([]);
   const [templateMeta, setTemplateMeta] = useState(null);
@@ -1328,7 +1343,7 @@ function PersonRoute() {
       입사자를 찾을 수 없습니다.
     </div>
   );
-  return <PersonView person={person} links={links} templateMeta={templateMeta} survey={survey} onToggle={toggleItem} onSubmitSurvey={submitSurvey} />;
+  return <PersonView person={person} links={links} templateMeta={templateMeta} survey={survey} onBack={fromHR ? () => navigate('/') : undefined} onToggle={toggleItem} onSubmitSurvey={submitSurvey} />;
 }
 
 // ── HR 앱 ──
@@ -1446,9 +1461,9 @@ function HRApp() {
     const { data: inserted } = await supabase.from('people').insert({
       name: person.name,
       phone: person.phone || '',
+      google_account: person.googleAccount || '',
       dept: person.dept,
       join_date: person.joinDate,
-      slack_id: '',
       template_key: person.templateKey,
       steps: person.steps,
     }).select().single();
@@ -1480,7 +1495,7 @@ function HRApp() {
         links={links}
         templates={templates}
         deptGroups={deptGroups}
-        onSelect={(id) => navigate(`/person/${id}`)}
+        onSelect={(id) => navigate(`/person/${id}?from=hr`)}
         onAdd={addPerson}
         onDelete={deletePerson}
         onUpdate={updatePerson}
