@@ -647,11 +647,44 @@ function EditModal({ person, onUpdate, onClose, deptGroups: dg }) {
 }
 
 // ── 만족도 설문 폼 ──
+const SURVEY_QUESTIONS = [
+  { id: 'q1', question: '오늘 첫날 전반적인 경험에 대해 만족도를 알려주세요.', type: 'scale', placeholder: '이 점수를 준 이유는 무엇인가요? (선택)' },
+  { id: 'q2', question: '오늘 첫날 해야 할 것들, 스스로 얼마나 잘 파악하고 진행하셨나요?', type: 'scale', placeholder: '이 점수를 준 이유는 무엇인가요? (선택)' },
+  { id: 'q3', question: '생활안내문에서 필요한 정보를 스스로 찾고 이해하는 데 어려움이 없었나요?', type: 'scale', placeholder: '어려움이 있었다면 어떤 부분이었나요? (선택)' },
+  { id: 'q4', question: '오늘 체크리스트 항목들을 진행할 시간이 충분했나요?', type: 'scale', placeholder: '시간이 부족했다면 어떤 이유였나요? (ex. 바로 업무 투입 등) (선택)' },
+  { id: 'q5', question: '첫날 온보딩과 관련해서 자유롭게 남겨주세요.', subtext: '좋았던 점, 아쉬웠던 점, 건의사항 등', type: 'text', placeholder: '자유롭게 작성해주세요 (선택)' },
+];
+const SCORE_LABELS = ["", "별로였어요", "아쉬웠어요", "보통이었어요", "좋았어요", "아주 좋았어요!"];
+
+function StarRating({ value, onChange }) {
+  return (
+    <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+      {[1,2,3,4,5].map(s => (
+        <button key={s} onClick={() => onChange(s)}
+          style={{ background: "none", border: "none", fontSize: 28, cursor: "pointer", opacity: s <= value ? 1 : 0.25, transition: "opacity .15s", padding: 2 }}>
+          ⭐
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function SurveyForm({ personId, existingSurvey, onSubmit }) {
-  const [score, setScore] = useState(existingSurvey?.score || 0);
-  const [feedback, setFeedback] = useState(existingSurvey?.feedback || "");
+  const initAnswers = () => {
+    if (existingSurvey?.answers) return existingSurvey.answers;
+    if (existingSurvey?.score) return {
+      q1: { score: existingSurvey.score, feedback: existingSurvey.feedback || '' },
+      q2: { score: 0, feedback: '' }, q3: { score: 0, feedback: '' }, q4: { score: 0, feedback: '' }, q5: '',
+    };
+    return { q1: { score: 0, feedback: '' }, q2: { score: 0, feedback: '' }, q3: { score: 0, feedback: '' }, q4: { score: 0, feedback: '' }, q5: '' };
+  };
+  const [answers, setAnswers] = useState(initAnswers);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(!!existingSurvey);
+
+  const setScore = (id, score) => setAnswers(prev => ({ ...prev, [id]: { ...prev[id], score } }));
+  const setFeedback = (id, feedback) => setAnswers(prev => ({ ...prev, [id]: { ...prev[id], feedback } }));
+  const isValid = ['q1','q2','q3','q4'].every(id => answers[id].score > 0);
 
   if (done) return (
     <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, padding: "16px 18px", textAlign: "center" }}>
@@ -664,26 +697,36 @@ function SurveyForm({ personId, existingSurvey, onSubmit }) {
   return (
     <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "18px 18px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
       <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>📝 온보딩 만족도 조사</div>
-      <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 16 }}>오늘 온보딩은 어떠셨나요? 솔직한 의견이 큰 도움이 됩니다.</div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 14, justifyContent: "center" }}>
-        {[1,2,3,4,5].map(s => (
-          <button key={s} onClick={() => setScore(s)}
-            style={{ background: "none", border: "none", fontSize: 32, cursor: "pointer", opacity: s <= score ? 1 : 0.2, transition: "opacity .15s", padding: 0 }}>
-            ⭐
-          </button>
-        ))}
-      </div>
-      {score > 0 && <div style={{ textAlign: "center", fontSize: 12, color: "#f59e0b", marginBottom: 12, fontWeight: 600 }}>
-        {["","별로였어요","아쉬웠어요","보통이었어요","좋았어요","아주 좋았어요!"][score]}
-      </div>}
-      <textarea value={feedback} onChange={e => setFeedback(e.target.value)}
-        placeholder="개선사항이나 좋았던 점을 자유롭게 적어주세요 (선택)"
-        style={{ width: "100%", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 12px", color: "#0f172a", fontSize: 13, resize: "vertical", minHeight: 80, boxSizing: "border-box", fontFamily: "inherit" }} />
-      <button disabled={score === 0 || submitting} onClick={async () => {
+      <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 20 }}>솔직한 의견이 온보딩 개선에 큰 도움이 됩니다.</div>
+      {SURVEY_QUESTIONS.map((q, idx) => (
+        <div key={q.id} style={{ marginBottom: 24, paddingBottom: 24, borderBottom: idx < SURVEY_QUESTIONS.length - 1 ? "1px solid #f1f5f9" : "none" }}>
+          <div style={{ fontSize: 11, color: "#6366f1", fontWeight: 700, marginBottom: 4 }}>Q{idx + 1}</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", marginBottom: q.subtext ? 2 : 14, lineHeight: 1.6 }}>{q.question}</div>
+          {q.subtext && <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 14 }}>{q.subtext}</div>}
+          {q.type === 'scale' && (<>
+            <StarRating value={answers[q.id].score} onChange={s => setScore(q.id, s)} />
+            {answers[q.id].score > 0 && (
+              <div style={{ textAlign: "center", fontSize: 12, color: "#f59e0b", margin: "6px 0 10px", fontWeight: 600 }}>
+                {SCORE_LABELS[answers[q.id].score]}
+              </div>
+            )}
+            <textarea value={answers[q.id].feedback} onChange={e => setFeedback(q.id, e.target.value)}
+              placeholder={q.placeholder}
+              style={{ width: "100%", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 12px", color: "#0f172a", fontSize: 12, resize: "vertical", minHeight: 60, boxSizing: "border-box", fontFamily: "inherit", marginTop: 4 }} />
+          </>)}
+          {q.type === 'text' && (
+            <textarea value={answers.q5} onChange={e => setAnswers(prev => ({ ...prev, q5: e.target.value }))}
+              placeholder={q.placeholder}
+              style={{ width: "100%", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 12px", color: "#0f172a", fontSize: 12, resize: "vertical", minHeight: 80, boxSizing: "border-box", fontFamily: "inherit" }} />
+          )}
+        </div>
+      ))}
+      {!isValid && <div style={{ fontSize: 12, color: "#f59e0b", marginBottom: 10, textAlign: "center" }}>Q1~Q4 별점을 모두 선택해주세요 ⭐</div>}
+      <button disabled={!isValid || submitting} onClick={async () => {
         setSubmitting(true);
-        await onSubmit({ score, feedback });
+        await onSubmit({ score: answers.q1.score, feedback: answers.q5 || '', answers });
         setDone(true);
-      }} style={{ marginTop: 10, width: "100%", background: score === 0 ? "#f1f5f9" : "#3b82f6", border: "none", borderRadius: 8, padding: "11px", color: score === 0 ? "#94a3b8" : "#fff", fontWeight: 700, fontSize: 13, cursor: score === 0 ? "default" : "pointer", transition: "background .2s" }}>
+      }} style={{ width: "100%", background: !isValid ? "#f1f5f9" : "#3b82f6", border: "none", borderRadius: 8, padding: "11px", color: !isValid ? "#94a3b8" : "#fff", fontWeight: 700, fontSize: 13, cursor: !isValid ? "default" : "pointer", transition: "background .2s" }}>
         {submitting ? "제출 중..." : "설문 제출하기"}
       </button>
     </div>
@@ -1026,17 +1069,35 @@ function SatisfactionView({ surveys, people }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {[...surveys].sort((a,b) => new Date(b.submitted_at) - new Date(a.submitted_at)).map(sv => {
           const p = personMap[sv.person_id];
+          const hasAnswers = sv.answers && typeof sv.answers === 'object';
           return (
             <div key={sv.id} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "14px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ fontWeight: 700, color: "#0f172a", fontSize: 14 }}>{p?.name || "알 수 없음"}</span>
                   {p && <span style={{ fontSize: 12, color: "#64748b", background: "#f1f5f9", borderRadius: 99, padding: "1px 8px" }}>{p.dept}</span>}
                 </div>
                 <span style={{ fontSize: 14, color: "#f59e0b" }}>{"⭐".repeat(sv.score)}</span>
               </div>
-              {sv.feedback && <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.6 }}>{sv.feedback}</div>}
-              <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 6 }}>{new Date(sv.submitted_at).toLocaleDateString('ko-KR')}</div>
+              {hasAnswers ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {SURVEY_QUESTIONS.map((q, idx) => {
+                    const ans = q.type === 'text' ? sv.answers.q5 : sv.answers[q.id];
+                    if (!ans || (q.type === 'scale' && ans.score === 0)) return null;
+                    return (
+                      <div key={q.id} style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 12px" }}>
+                        <div style={{ fontSize: 11, color: "#6366f1", fontWeight: 700, marginBottom: 2 }}>Q{idx+1}. {q.question}</div>
+                        {q.type === 'scale' && <div style={{ fontSize: 12, color: "#f59e0b", fontWeight: 600 }}>{"⭐".repeat(ans.score)} {SCORE_LABELS[ans.score]}</div>}
+                        {q.type === 'scale' && ans.feedback && <div style={{ fontSize: 12, color: "#475569", marginTop: 4, lineHeight: 1.5 }}>{ans.feedback}</div>}
+                        {q.type === 'text' && ans && <div style={{ fontSize: 12, color: "#475569", lineHeight: 1.5 }}>{ans}</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                sv.feedback && <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.6 }}>{sv.feedback}</div>
+              )}
+              <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 8 }}>{new Date(sv.submitted_at).toLocaleDateString('ko-KR')}</div>
             </div>
           );
         })}
@@ -1256,8 +1317,8 @@ function PersonRoute() {
     await supabase.from('people').update({ steps: newSteps }).eq('id', personId);
   };
 
-  const submitSurvey = async ({ score, feedback }) => {
-    const { data } = await supabase.from('surveys').insert({ person_id: id, score, feedback }).select().single();
+  const submitSurvey = async ({ score, feedback, answers }) => {
+    const { data } = await supabase.from('surveys').insert({ person_id: id, score, feedback, answers }).select().single();
     if (data) setSurvey(data);
   };
 
