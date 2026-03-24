@@ -1244,11 +1244,17 @@ function SatisfactionView({ surveys, people, onDeleteSurvey }) {
   const avg = (surveys.reduce((a, sv) => a + getSurveyScore(sv), 0) / surveys.length).toFixed(1);
   const dist = [1,2,3,4,5].map(s => ({ score: s, count: surveys.filter(sv => Math.round(getSurveyScore(sv)) === s).length }));
   const max = Math.max(...dist.map(d => d.count), 1);
+  const scaleQs = SURVEY_QUESTIONS.filter(q => q.type === 'scale');
+  const qAvgs = scaleQs.map(q => {
+    const scores = surveys.map(sv => sv.answers?.[q.id]?.score || 0).filter(s => s > 0);
+    return { q, avg: scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : null, count: scores.length };
+  });
   const personMap = Object.fromEntries(people.map(p => [p.id, p]));
+  const scoreColor = (v) => v === null ? "#94a3b8" : v >= 4.5 ? "#16a34a" : v >= 3.5 ? "#2563eb" : "#ea580c";
   return (
     <div style={{ padding: 24, maxWidth: 720, margin: "0 auto" }}>
       <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", marginBottom: 24 }}>📊 만족도 현황</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
         <div style={{ background: "#fffbeb", borderRadius: 12, padding: "18px 20px", border: "1px solid #fde68a" }}>
           <div style={{ fontSize: 12, color: "#92400e", marginBottom: 4, fontWeight: 500 }}>평균 점수</div>
           <div style={{ fontSize: 32, fontWeight: 800, color: "#d97706" }}>⭐ {avg}</div>
@@ -1263,6 +1269,21 @@ function SatisfactionView({ surveys, people, onDeleteSurvey }) {
                 <div style={{ width: `${(d.count / max) * 100}%`, background: "#f59e0b", height: 8, borderRadius: 4, transition: "width .4s" }} />
               </div>
               <span style={{ fontSize: 11, color: "#94a3b8", minWidth: 16 }}>{d.count}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "16px 20px", marginBottom: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+        <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 12 }}>문항별 평균</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {qAvgs.map(({ q, avg: qa, count }, idx) => (
+            <div key={q.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 11, color: "#6366f1", fontWeight: 700, minWidth: 22 }}>Q{idx + 1}</span>
+              <span style={{ flex: 1, fontSize: 12, color: "#334155", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.question}</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: scoreColor(qa ? parseFloat(qa) : null), minWidth: 38, textAlign: "right" }}>
+                {qa ? `⭐ ${qa}` : "-"}
+              </span>
+              <span style={{ fontSize: 11, color: "#94a3b8", minWidth: 32, textAlign: "right" }}>{count}건</span>
             </div>
           ))}
         </div>
