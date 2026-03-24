@@ -790,7 +790,7 @@ function OnboardGate() {
   );
 }
 
-function PersonView({ person, links, templateMeta, survey, surveyQuestions, onBack, onToggle, onSubmitSurvey }) {
+function PersonView({ person, links, templateMeta, survey, surveyQuestions, surveyPosition, onBack, onToggle, onSubmitSurvey, onUpdatePerson }) {
   const pct = calcProgress(person.steps);
   const allDone = pct === 100;
   const intro = templateMeta?.intro || "";
@@ -800,7 +800,18 @@ function PersonView({ person, links, templateMeta, survey, surveyQuestions, onBa
     Object.fromEntries(person.steps.map((s, i) => [i, Math.round(s.items.filter(it => it.done).length / (s.items.length || 1) * 100) === 100]))
   );
   const [showPw, setShowPw] = useState(false);
+  const [googleEdit, setGoogleEdit] = useState({ account: person.google_account || "", password: person.google_password || "" });
+  const [savingGoogle, setSavingGoogle] = useState(false);
+  const [googleSaved, setGoogleSaved] = useState(false);
   const toggleCollapse = (si) => setCollapsed(prev => ({ ...prev, [si]: !prev[si] }));
+
+  const handleSaveGoogle = async () => {
+    setSavingGoogle(true);
+    await onUpdatePerson({ google_account: googleEdit.account, google_password: googleEdit.password });
+    setSavingGoogle(false);
+    setGoogleSaved(true);
+    setTimeout(() => setGoogleSaved(false), 2000);
+  };
   return (
     <div style={{ maxWidth: 560, margin: "0 auto", padding: isMobile ? "16px 12px" : "24px 16px" }}>
       {onBack && <button onClick={onBack} style={{ background: "none", border: "none", color: "#6366f1", cursor: "pointer", fontSize: 13, marginBottom: 20, padding: 0, fontWeight: 600 }}>← 돌아가기</button>}
@@ -816,7 +827,30 @@ function PersonView({ person, links, templateMeta, survey, surveyQuestions, onBa
         <div style={{ marginBottom: intro ? 16 : 24 }}>
           <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", marginBottom: 2 }}>안녕하세요, {person.name} 님 👋</div>
           <div style={{ fontSize: 13, color: "#64748b", marginBottom: person.google_account ? 12 : 16 }}>{person.dept} · 입사일 {person.joinDate || person.join_date}</div>
-          {person.google_account && (
+          {onUpdatePerson ? (
+            <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "12px 14px", marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <div style={{ fontSize: 12, color: "#2563eb", fontWeight: 700 }}>🔑 Google 계정 정보 (HR 편집)</div>
+                <button onClick={handleSaveGoogle} disabled={savingGoogle} style={{ background: googleSaved ? "#16a34a" : "#3b82f6", border: "none", borderRadius: 6, padding: "4px 12px", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                  {savingGoogle ? "저장 중..." : googleSaved ? "✓ 저장됨" : "저장"}
+                </button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div>
+                  <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}>이메일</div>
+                  <input value={googleEdit.account} onChange={e => setGoogleEdit(p => ({ ...p, account: e.target.value }))}
+                    placeholder="example@gmail.com"
+                    style={{ width: "100%", background: "#fff", border: "1px solid #bfdbfe", borderRadius: 6, padding: "7px 10px", fontSize: 13, color: "#0f172a", boxSizing: "border-box" }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}>초기 비밀번호</div>
+                  <input value={googleEdit.password} onChange={e => setGoogleEdit(p => ({ ...p, password: e.target.value }))}
+                    placeholder="초기 비밀번호"
+                    style={{ width: "100%", background: "#fff", border: "1px solid #bfdbfe", borderRadius: 6, padding: "7px 10px", fontSize: 13, color: "#0f172a", boxSizing: "border-box" }} />
+                </div>
+              </div>
+            </div>
+          ) : person.google_account ? (
             <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "12px 14px", marginBottom: 16 }}>
               <div style={{ fontSize: 12, color: "#2563eb", fontWeight: 700, marginBottom: 8 }}>🔑 Google 계정 정보</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -839,7 +873,7 @@ function PersonView({ person, links, templateMeta, survey, surveyQuestions, onBa
                 )}
               </div>
             </div>
-          )}
+          ) : null}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <ProgressBar pct={pct} height={10} />
             <span style={{ fontSize: 14, fontWeight: 700, color: "#f59e0b", minWidth: 36 }}>{pct}%</span>
@@ -870,7 +904,8 @@ function PersonView({ person, links, templateMeta, survey, surveyQuestions, onBa
         const stepPct = Math.round(step.items.filter(i => i.done).length / (step.items.length || 1) * 100);
         const isCollapsed = collapsed[si];
         return (
-          <div key={si} style={{ marginBottom: 12, background: "#fff", border: `1px solid ${stepPct === 100 ? "#bbf7d0" : "#e2e8f0"}`, borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+          <div key={si} style={{ marginBottom: 0 }}>
+            <div style={{ marginBottom: 12, background: "#fff", border: `1px solid ${stepPct === 100 ? "#bbf7d0" : "#e2e8f0"}`, borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
             <div onClick={() => toggleCollapse(si)} style={{ padding: "12px 14px 10px", borderBottom: isCollapsed ? "none" : `1px solid #f1f5f9`, cursor: "pointer", background: stepPct === 100 ? "#f0fdf4" : "#fff" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: isCollapsed ? 0 : 6 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: stepPct === 100 ? "#15803d" : "#0f172a" }}>
@@ -916,6 +951,12 @@ function PersonView({ person, links, templateMeta, survey, surveyQuestions, onBa
               </div>
             )}
           </div>
+          {onSubmitSurvey && surveyPosition === si + 1 && (
+            <div style={{ marginBottom: 12 }}>
+              <SurveyForm personId={person.id} existingSurvey={survey} onSubmit={onSubmitSurvey} surveyQuestions={surveyQuestions} />
+            </div>
+          )}
+          </div>
         );
       })}
       {outro && (
@@ -923,7 +964,7 @@ function PersonView({ person, links, templateMeta, survey, surveyQuestions, onBa
           {outro}
         </div>
       )}
-      {onSubmitSurvey && (
+      {onSubmitSurvey && (!surveyPosition || surveyPosition > person.steps.length) && (
         <div style={{ marginTop: 16 }}>
           <SurveyForm personId={person.id} existingSurvey={survey} onSubmit={onSubmitSurvey} surveyQuestions={surveyQuestions} />
         </div>
@@ -936,10 +977,13 @@ function PersonView({ person, links, templateMeta, survey, surveyQuestions, onBa
 }
 
 // ── 만족도 문항 관리 ──
-function SurveyQuestionsManager({ questions, onSave }) {
+function SurveyQuestionsManager({ questions, onSave, surveyPosition, onSaveSurveyPosition }) {
   const [items, setItems] = useState(() => (questions || SURVEY_QUESTIONS).map(q => ({ ...q, _id: q._id || `sq-${Math.random()}` })));
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [posInput, setPosInput] = useState(surveyPosition != null ? String(surveyPosition) : "");
+  const [savingPos, setSavingPos] = useState(false);
+  const [savedPos, setSavedPos] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   const addQ = () => setItems(prev => [...prev, { id: `q${Date.now()}`, _id: `sq-${Math.random()}`, question: "", type: "scale", placeholder: "" }]);
@@ -956,6 +1000,15 @@ function SurveyQuestionsManager({ questions, onSave }) {
       arr.splice(newIdx, 0, moved);
       return arr;
     });
+  };
+
+  const handleSavePosition = async () => {
+    setSavingPos(true);
+    const pos = posInput === "" ? null : parseInt(posInput, 10);
+    if (onSaveSurveyPosition) await onSaveSurveyPosition(pos);
+    setSavingPos(false);
+    setSavedPos(true);
+    setTimeout(() => setSavedPos(false), 2000);
   };
 
   const handleSave = async () => {
@@ -976,6 +1029,16 @@ function SurveyQuestionsManager({ questions, onSave }) {
         </button>
       </div>
       <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 16 }}>드래그로 순서 변경 · 문항 추가/삭제 가능</div>
+      <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "12px 14px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 13, color: "#0f172a", fontWeight: 600 }}>📍 조사 위치</span>
+        <span style={{ fontSize: 12, color: "#64748b" }}>몇 번째 단계 뒤에 표시?</span>
+        <input type="number" min="1" value={posInput} onChange={e => setPosInput(e.target.value)} placeholder="예: 5"
+          style={{ width: 70, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 6, padding: "5px 8px", fontSize: 13, color: "#0f172a" }} />
+        <span style={{ fontSize: 12, color: "#94a3b8" }}>단계 뒤 · 비워두면 맨 아래</span>
+        <button onClick={handleSavePosition} disabled={savingPos} style={{ background: savedPos ? "#16a34a" : "#6366f1", border: "none", borderRadius: 6, padding: "6px 14px", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+          {savingPos ? "저장 중..." : savedPos ? "✓ 저장됨" : "위치 저장"}
+        </button>
+      </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={items.map(q => q._id)} strategy={verticalListSortingStrategy}>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
@@ -1012,7 +1075,7 @@ function SurveyQuestionsManager({ questions, onSave }) {
 }
 
 // ── 설정 뷰 ──
-function SettingsView({ deptGroups, onSaveDeptGroups, links, templates, onSaveLinks, onSaveTemplates, onDeleteTemplate, surveyQuestions, onSaveSurveyQuestions }) {
+function SettingsView({ deptGroups, onSaveDeptGroups, links, templates, onSaveLinks, onSaveTemplates, onDeleteTemplate, surveyQuestions, onSaveSurveyQuestions, surveyPosition, onSaveSurveyPosition }) {
   const [settingsTab, setSettingsTab] = useState("templates");
   const TAB = (active) => ({
     background: active ? "#3b82f6" : "#fff",
@@ -1136,14 +1199,14 @@ function SettingsView({ deptGroups, onSaveDeptGroups, links, templates, onSaveLi
         </div>
       )}
       {settingsTab === "survey" && (
-        <SurveyQuestionsManager questions={surveyQuestions} onSave={onSaveSurveyQuestions} />
+        <SurveyQuestionsManager questions={surveyQuestions} onSave={onSaveSurveyQuestions} surveyPosition={surveyPosition} onSaveSurveyPosition={onSaveSurveyPosition} />
       )}
     </div>
   );
 }
 
 // ── 만족도 대시보드 ──
-function SatisfactionView({ surveys, people }) {
+function SatisfactionView({ surveys, people, onDeleteSurvey }) {
   if (!surveys.length) return (
     <div style={{ padding: 24, textAlign: "center", color: "#94a3b8", paddingTop: 80 }}>
       <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
@@ -1187,7 +1250,15 @@ function SatisfactionView({ surveys, people }) {
                   <span style={{ fontWeight: 700, color: "#0f172a", fontSize: 14 }}>{p?.name || "알 수 없음"}</span>
                   {p && <span style={{ fontSize: 12, color: "#64748b", background: "#f1f5f9", borderRadius: 99, padding: "1px 8px" }}>{p.dept}</span>}
                 </div>
-                <span style={{ fontSize: 14, color: "#f59e0b" }}>{"⭐".repeat(sv.score)}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 14, color: "#f59e0b" }}>{"⭐".repeat(sv.score)}</span>
+                  {onDeleteSurvey && (
+                    <button onClick={(e) => { e.stopPropagation(); if (window.confirm("이 설문을 삭제할까요?")) onDeleteSurvey(sv.id); }}
+                      style={{ background: "#fee2e2", border: "none", borderRadius: 6, padding: "3px 8px", color: "#dc2626", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
+                      삭제
+                    </button>
+                  )}
+                </div>
               </div>
               {hasAnswers ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -1395,16 +1466,18 @@ function PersonRoute() {
   const [templateMeta, setTemplateMeta] = useState(null);
   const [survey, setSurvey] = useState(null);
   const [surveyQuestions, setSurveyQuestions] = useState(SURVEY_QUESTIONS);
+  const [surveyPosition, setSurveyPosition] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let channel;
     async function load() {
-      const [personRes, linksRes, surveyRes, sqRes] = await Promise.all([
+      const [personRes, linksRes, surveyRes, sqRes, spRes] = await Promise.all([
         supabase.from('people').select('*').eq('id', id).single(),
         supabase.from('links').select('*').order('order_index'),
         supabase.from('surveys').select('*').eq('person_id', id).maybeSingle(),
         supabase.from('config').select('value').eq('key', 'survey_questions').maybeSingle(),
+        supabase.from('config').select('value').eq('key', 'survey_position').maybeSingle(),
       ]);
       if (personRes.data) {
         setPerson(personRes.data);
@@ -1414,6 +1487,7 @@ function PersonRoute() {
       setLinks(linksRes.data || []);
       if (surveyRes.data) setSurvey(surveyRes.data);
       if (sqRes.data?.value) setSurveyQuestions(sqRes.data.value);
+      if (spRes.data?.value != null) setSurveyPosition(spRes.data.value);
       setLoading(false);
     }
     load();
@@ -1442,13 +1516,18 @@ function PersonRoute() {
     if (data) setSurvey(data);
   };
 
+  const updatePersonMeta = async (fields) => {
+    const { data } = await supabase.from('people').update(fields).eq('id', id).select().single();
+    if (data) setPerson(prev => ({ ...prev, ...data }));
+  };
+
   if (loading) return <LoadingScreen />;
   if (!person) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", color: "#94a3b8", fontSize: 14, background: "#f8fafc" }}>
       입사자를 찾을 수 없습니다.
     </div>
   );
-  return <PersonView person={person} links={links} templateMeta={templateMeta} survey={survey} surveyQuestions={surveyQuestions} onBack={fromHR ? () => navigate('/') : undefined} onToggle={toggleItem} onSubmitSurvey={submitSurvey} />;
+  return <PersonView person={person} links={links} templateMeta={templateMeta} survey={survey} surveyQuestions={surveyQuestions} surveyPosition={surveyPosition} onBack={fromHR ? () => navigate('/') : undefined} onToggle={toggleItem} onSubmitSurvey={submitSurvey} onUpdatePerson={fromHR ? updatePersonMeta : undefined} />;
 }
 
 // ── HR 앱 ──
@@ -1460,6 +1539,7 @@ function HRApp() {
   const [deptGroups, setDeptGroups] = useState(DEPT_GROUPS);
   const [surveys, setSurveys] = useState([]);
   const [surveyQuestions, setSurveyQuestions] = useState(SURVEY_QUESTIONS);
+  const [surveyPosition, setSurveyPosition] = useState(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("hr");
 
@@ -1489,13 +1569,14 @@ function HRApp() {
   }
 
   async function loadAll() {
-    const [linksRes, templatesRes, peopleRes, configRes, surveysRes, sqRes] = await Promise.all([
+    const [linksRes, templatesRes, peopleRes, configRes, surveysRes, sqRes, spRes] = await Promise.all([
       supabase.from('links').select('*').order('order_index'),
       supabase.from('templates').select('*'),
       supabase.from('people').select('*').order('created_at'),
       supabase.from('config').select('value').eq('key', 'dept_groups').single(),
       supabase.from('surveys').select('*').order('submitted_at', { ascending: false }),
       supabase.from('config').select('value').eq('key', 'survey_questions').maybeSingle(),
+      supabase.from('config').select('value').eq('key', 'survey_position').maybeSingle(),
     ]);
 
     let linksData = linksRes.data || [];
@@ -1523,6 +1604,7 @@ function HRApp() {
     setData(peopleData);
     setSurveys(surveysRes.data || []);
     if (sqRes.data?.value) setSurveyQuestions(sqRes.data.value);
+    if (spRes.data?.value != null) setSurveyPosition(spRes.data.value);
     setLoading(false);
   }
 
@@ -1539,6 +1621,11 @@ function HRApp() {
   const saveSurveyQuestions = async (questions) => {
     await supabase.from('config').upsert({ key: 'survey_questions', value: questions });
     setSurveyQuestions(questions);
+  };
+
+  const saveSurveyPosition = async (pos) => {
+    await supabase.from('config').upsert({ key: 'survey_position', value: pos });
+    setSurveyPosition(pos);
   };
 
   const saveDeptGroups = async (newGroups) => {
@@ -1563,6 +1650,11 @@ function HRApp() {
   const deletePerson = async (id) => {
     await supabase.from('people').delete().eq('id', id);
     setData(prev => prev.filter(p => p.id !== id));
+  };
+
+  const deleteSurvey = async (id) => {
+    await supabase.from('surveys').delete().eq('id', id);
+    setSurveys(prev => prev.filter(s => s.id !== id));
   };
 
   const updatePerson = async (id, fields) => {
@@ -1613,7 +1705,7 @@ function HRApp() {
         onDelete={deletePerson}
         onUpdate={updatePerson}
       />}
-      {view === "satisfaction" && <SatisfactionView surveys={surveys} people={data} />}
+      {view === "satisfaction" && <SatisfactionView surveys={surveys} people={data} onDeleteSurvey={deleteSurvey} />}
       {view === "settings" && <SettingsView
         deptGroups={deptGroups}
         onSaveDeptGroups={saveDeptGroups}
@@ -1624,6 +1716,8 @@ function HRApp() {
         onDeleteTemplate={deleteTemplate}
         surveyQuestions={surveyQuestions}
         onSaveSurveyQuestions={saveSurveyQuestions}
+        surveyPosition={surveyPosition}
+        onSaveSurveyPosition={saveSurveyPosition}
       />}
     </>
   );
