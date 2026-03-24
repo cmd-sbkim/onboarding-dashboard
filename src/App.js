@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { QRCodeCanvas } from 'qrcode.react';
-import { BrowserRouter, Routes, Route, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "./supabaseClient";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -1551,7 +1551,7 @@ function PersonRoute() {
       입사자를 찾을 수 없습니다.
     </div>
   );
-  return <PersonView person={person} links={links} templateMeta={templateMeta} survey={survey} surveyQuestions={surveyQuestions} surveyPosition={surveyPosition} onBack={fromHR ? () => navigate('/') : undefined} onToggle={toggleItem} onSubmitSurvey={submitSurvey} onUpdatePerson={fromHR ? updatePersonMeta : undefined} />;
+  return <PersonView person={person} links={links} templateMeta={templateMeta} survey={survey} surveyQuestions={surveyQuestions} surveyPosition={surveyPosition} onBack={fromHR ? () => navigate('/hr') : undefined} onToggle={toggleItem} onSubmitSurvey={submitSurvey} onUpdatePerson={fromHR ? updatePersonMeta : undefined} />;
 }
 
 // ── HR 앱 ──
@@ -1753,7 +1753,8 @@ export default function App() {
     <BrowserRouter>
       <div style={{ fontFamily: "'Pretendard','Apple SD Gothic Neo',sans-serif", background: "#f8fafc", minHeight: "100vh", color: "#0f172a" }}>
         <Routes>
-          <Route path="/" element={<HRApp />} />
+          <Route path="/" element={<Navigate to="/onboard" replace />} />
+          <Route path="/hr" element={<HRApp />} />
           <Route path="/onboard" element={<OnboardGate />} />
           <Route path="/person/:id" element={<PersonRoute />} />
         </Routes>
