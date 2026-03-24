@@ -1435,6 +1435,10 @@ function HRView({ data, links, templates, deptGroups, surveys, onSelect, onAdd, 
             style={CHIP(filterDateFrom === new Date().toISOString().slice(0,10) && filterDateTo === new Date().toISOString().slice(0,10))}>
             오늘
           </button>
+          <button onClick={() => { const d = new Date(); d.setDate(d.getDate()-3); const t = d.toISOString().slice(0,10); setFilterDateFrom(t); setFilterDateTo(t); }}
+            style={CHIP(filterDateFrom === (() => { const d = new Date(); d.setDate(d.getDate()-3); return d.toISOString().slice(0,10); })() && filterDateTo === (() => { const d = new Date(); d.setDate(d.getDate()-3); return d.toISOString().slice(0,10); })())}>
+            D+3
+          </button>
           <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)}
             style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "4px 10px", fontSize: 12, color: "#0f172a", cursor: "pointer" }} />
           <span style={{ fontSize: 12, color: "#94a3b8" }}>~</span>
