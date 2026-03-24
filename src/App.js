@@ -640,7 +640,7 @@ function EditModal({ person, onUpdate, onClose, deptGroups: dg }) {
           <button disabled={saving} onClick={async () => {
             if (!form.name.trim()) return alert("이름을 입력해주세요");
             setSaving(true);
-            await onUpdate(person.id, { name: form.name, phone: form.phone, google_account: form.googleAccount, google_password: form.googlePassword, dept: form.dept, join_date: form.joinDate });
+            await onUpdate(person.id, { name: form.name, phone: form.phone.replace(/\D/g, ''), google_account: form.googleAccount, google_password: form.googlePassword, dept: form.dept, join_date: form.joinDate });
             onClose();
           }} style={{ flex: 2, background: "#3b82f6", border: "none", borderRadius: 8, padding: "10px", color: "#fff", cursor: saving ? "default" : "pointer", fontSize: 13, fontWeight: 700, opacity: saving ? 0.7 : 1 }}>
             {saving ? "저장 중..." : "수정 완료"}
@@ -1728,7 +1728,7 @@ function HRApp() {
   const addPerson = async (person) => {
     const { data: inserted } = await supabase.from('people').insert({
       name: person.name,
-      phone: person.phone || '',
+      phone: (person.phone || '').replace(/\D/g, ''),
       dept: person.dept,
       join_date: person.joinDate,
       template_key: person.templateKey,
