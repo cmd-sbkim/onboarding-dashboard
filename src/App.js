@@ -821,7 +821,7 @@ function PersonView({ person, links, templateMeta, survey, surveyQuestions, surv
   const [collapsed, setCollapsed] = useState(() =>
     Object.fromEntries((person.steps || []).map((s, i) => [i, Math.round(s.items.filter(it => it.done).length / (s.items.length || 1) * 100) === 100]))
   );
-  const [showPw, setShowPw] = useState(false);
+
   const [googleEdit, setGoogleEdit] = useState({ account: person.google_account || "", password: person.google_password || "" });
   const [savingGoogle, setSavingGoogle] = useState(false);
   const [googleSaved, setGoogleSaved] = useState(false);
