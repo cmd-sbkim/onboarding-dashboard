@@ -862,14 +862,9 @@ function PersonView({ person, links, templateMeta, survey, surveyQuestions, surv
                 {person.google_password && (
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontSize: 11, color: "#64748b" }}>초기 비밀번호</span>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontSize: 13, color: "#1e40af", fontWeight: 600, fontFamily: "monospace" }}>
-                        {showPw ? person.google_password : "••••••••"}
-                      </span>
-                      <button onClick={() => setShowPw(v => !v)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, padding: 0, color: "#64748b" }}>
-                        {showPw ? "🙈" : "👁️"}
-                      </button>
-                    </div>
+                    <span style={{ fontSize: 13, color: "#1e40af", fontWeight: 600, fontFamily: "monospace" }}>
+                      {person.google_password}
+                    </span>
                   </div>
                 )}
               </div>
