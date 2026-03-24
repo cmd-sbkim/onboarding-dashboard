@@ -1227,7 +1227,8 @@ function SettingsView({ deptGroups, onSaveDeptGroups, links, templates, onSaveLi
 }
 
 // ── 만족도 대시보드 ──
-function SatisfactionView({ surveys, people, onDeleteSurvey }) {
+function SatisfactionView({ surveys, people, onDeleteSurvey, surveyQuestions }) {
+  const questions = (surveyQuestions && surveyQuestions.length) ? surveyQuestions : SURVEY_QUESTIONS;
   if (!surveys.length) return (
     <div style={{ padding: 24, textAlign: "center", color: "#94a3b8", paddingTop: 80 }}>
       <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
@@ -1244,7 +1245,7 @@ function SatisfactionView({ surveys, people, onDeleteSurvey }) {
   const avg = (surveys.reduce((a, sv) => a + getSurveyScore(sv), 0) / surveys.length).toFixed(1);
   const dist = [1,2,3,4,5].map(s => ({ score: s, count: surveys.filter(sv => Math.round(getSurveyScore(sv)) === s).length }));
   const max = Math.max(...dist.map(d => d.count), 1);
-  const scaleQs = SURVEY_QUESTIONS.filter(q => q.type === 'scale');
+  const scaleQs = questions.filter(q => q.type === 'scale');
   const qAvgs = scaleQs.map(q => {
     const scores = surveys.map(sv => sv.answers?.[q.id]?.score || 0).filter(s => s > 0);
     return { q, avg: scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : null, count: scores.length };
@@ -1311,8 +1312,8 @@ function SatisfactionView({ surveys, people, onDeleteSurvey }) {
               </div>
               {hasAnswers ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {SURVEY_QUESTIONS.map((q, idx) => {
-                    const ans = q.type === 'text' ? sv.answers.q5 : sv.answers[q.id];
+                  {questions.map((q, idx) => {
+                    const ans = q.type === 'text' ? (sv.answers[q.id] || sv.answers.q5) : sv.answers[q.id];
                     if (!ans || (q.type === 'scale' && ans.score === 0)) return null;
                     return (
                       <div key={q.id} style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 12px" }}>
@@ -1821,7 +1822,7 @@ function HRApp() {
         onDelete={deletePerson}
         onUpdate={updatePerson}
       />}
-      {view === "satisfaction" && <SatisfactionView surveys={surveys} people={data} onDeleteSurvey={deleteSurvey} />}
+      {view === "satisfaction" && <SatisfactionView surveys={surveys} people={data} onDeleteSurvey={deleteSurvey} surveyQuestions={surveyQuestions} />}
       {view === "settings" && <SettingsView
         deptGroups={deptGroups}
         onSaveDeptGroups={saveDeptGroups}
