@@ -696,7 +696,14 @@ function SurveyForm({ personId, existingSurvey, onSubmit, surveyQuestions: propQ
 
   const setScore = (id, score) => setAnswers(prev => ({ ...prev, [id]: { ...prev[id], score } }));
   const setFeedback = (id, feedback) => setAnswers(prev => ({ ...prev, [id]: { ...prev[id], feedback } }));
-  const isValid = ['q1','q2','q3','q4'].every(id => answers[id].score > 0);
+  const scaleIds = questions.filter(q => q.type === 'scale').map(q => q.id);
+  const isValid = scaleIds.every(id => (answers[id]?.score || 0) > 0) &&
+    questions.every(q => {
+      if (!q.required) return true;
+      if (q.type === 'scale') return !!(answers[q.id]?.feedback || '').trim();
+      if (q.type === 'text') return !!(answers[q.id] || '').trim();
+      return true;
+    });
 
   if (done) return (
     <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, padding: "16px 18px", textAlign: "center" }}>
@@ -716,24 +723,32 @@ function SurveyForm({ personId, existingSurvey, onSubmit, surveyQuestions: propQ
           <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", marginBottom: q.subtext ? 2 : 14, lineHeight: 1.6 }}>{q.question}</div>
           {q.subtext && <div style={{ fontSize: 12, color: "#64748b", marginBottom: 14, whiteSpace: "pre-line", lineHeight: 1.7 }}>{q.subtext}</div>}
           {q.type === 'scale' && (<>
-            <ScoreSelector value={answers[q.id].score} onChange={s => setScore(q.id, s)} />
-            {answers[q.id].score > 0 && (
+            <ScoreSelector value={answers[q.id]?.score || 0} onChange={s => setScore(q.id, s)} />
+            {(answers[q.id]?.score || 0) > 0 && (
               <div style={{ textAlign: "center", fontSize: 12, color: "#3b82f6", margin: "8px 0 10px", fontWeight: 600 }}>
                 {answers[q.id].score}점 — {SCORE_LABELS[answers[q.id].score]}
               </div>
             )}
-            <textarea value={answers[q.id].feedback} onChange={e => setFeedback(q.id, e.target.value)}
-              placeholder={q.placeholder}
-              style={{ width: "100%", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 12px", color: "#0f172a", fontSize: 12, resize: "vertical", minHeight: 60, boxSizing: "border-box", fontFamily: "inherit", marginTop: 4 }} />
+            <div style={{ position: "relative", marginTop: 4 }}>
+              {q.required && <span style={{ position: "absolute", top: 8, right: 10, fontSize: 10, color: "#ef4444", fontWeight: 700 }}>필수</span>}
+              <textarea value={answers[q.id]?.feedback || ''} onChange={e => setFeedback(q.id, e.target.value)}
+                placeholder={q.required ? `${q.placeholder || '내용을 입력해주세요.'} (필수)` : q.placeholder}
+                style={{ width: "100%", background: "#f8fafc", border: `1px solid ${q.required && !(answers[q.id]?.feedback || '').trim() ? "#fca5a5" : "#e2e8f0"}`, borderRadius: 8, padding: "10px 12px", color: "#0f172a", fontSize: 12, resize: "vertical", minHeight: 60, boxSizing: "border-box", fontFamily: "inherit" }} />
+            </div>
           </>)}
           {q.type === 'text' && (
-            <textarea value={answers.q5} onChange={e => setAnswers(prev => ({ ...prev, q5: e.target.value }))}
-              placeholder={q.placeholder}
-              style={{ width: "100%", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 12px", color: "#0f172a", fontSize: 12, resize: "vertical", minHeight: 80, boxSizing: "border-box", fontFamily: "inherit" }} />
+            <div style={{ position: "relative" }}>
+              {q.required && <span style={{ position: "absolute", top: 8, right: 10, fontSize: 10, color: "#ef4444", fontWeight: 700 }}>필수</span>}
+              <textarea value={answers[q.id] || ''} onChange={e => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                placeholder={q.required ? `${q.placeholder || '내용을 입력해주세요.'} (필수)` : q.placeholder}
+                style={{ width: "100%", background: "#f8fafc", border: `1px solid ${q.required && !(answers[q.id] || '').trim() ? "#fca5a5" : "#e2e8f0"}`, borderRadius: 8, padding: "10px 12px", color: "#0f172a", fontSize: 12, resize: "vertical", minHeight: 80, boxSizing: "border-box", fontFamily: "inherit" }} />
+            </div>
           )}
         </div>
       ))}
-      {!isValid && <div style={{ fontSize: 12, color: "#f59e0b", marginBottom: 10, textAlign: "center" }}>Q1~Q4 점수를 모두 선택해주세요</div>}
+      {!isValid && <div style={{ fontSize: 12, color: "#ef4444", marginBottom: 10, textAlign: "center" }}>
+        {scaleIds.some(id => !(answers[id]?.score > 0)) ? "점수를 모두 선택해주세요" : "필수 항목을 입력해주세요"}
+      </div>}
       <button disabled={!isValid || submitting} onClick={async () => {
         setSubmitting(true);
         await onSubmit({ score: answers.q1.score, feedback: answers.q5 || '', answers });
@@ -1053,7 +1068,7 @@ function SurveyQuestionsManager({ questions, onSave, surveyPosition, onSaveSurve
                     <input value={q.question} onChange={e => updateQ(idx, "question", e.target.value)}
                       placeholder="문항 내용을 입력하세요"
                       style={{ width: "100%", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 6, padding: "7px 10px", fontSize: 13, color: "#0f172a", boxSizing: "border-box", marginBottom: 6 }} />
-                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                       <select value={q.type} onChange={e => updateQ(idx, "type", e.target.value)}
                         style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 6, padding: "5px 8px", fontSize: 12, color: "#0f172a" }}>
                         <option value="scale">⭐ 별점 + 주관식</option>
@@ -1062,6 +1077,10 @@ function SurveyQuestionsManager({ questions, onSave, surveyPosition, onSaveSurve
                       <input value={q.placeholder || ""} onChange={e => updateQ(idx, "placeholder", e.target.value)}
                         placeholder="안내 문구 (선택)"
                         style={{ flex: 1, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 6, padding: "5px 8px", fontSize: 12, color: "#0f172a" }} />
+                      <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#0f172a", cursor: "pointer", whiteSpace: "nowrap", userSelect: "none" }}>
+                        <input type="checkbox" checked={!!q.required} onChange={e => updateQ(idx, "required", e.target.checked)} style={{ cursor: "pointer" }} />
+                        주관식 필수
+                      </label>
                     </div>
                   </div>
                   <button onClick={() => removeQ(idx)} style={{ background: "#fee2e2", border: "none", borderRadius: 6, padding: "4px 8px", color: "#dc2626", fontSize: 12, cursor: "pointer", flexShrink: 0 }}>삭제</button>
