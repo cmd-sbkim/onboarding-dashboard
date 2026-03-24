@@ -1555,6 +1555,46 @@ function PersonRoute() {
 }
 
 // ── HR 앱 ──
+// ── HR 비밀번호 게이트 ──
+function HRGate({ children }) {
+  const [authed, setAuthed] = useState(() => localStorage.getItem('hr_auth') === 'true');
+  const [input, setInput] = useState('');
+  const [error, setError] = useState(false);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (input === '1224!@') {
+      localStorage.setItem('hr_auth', 'true');
+      setAuthed(true);
+    } else {
+      setError(true);
+      setInput('');
+      setTimeout(() => setError(false), 2000);
+    }
+  };
+
+  if (authed) return children;
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f8fafc' }}>
+      <div style={{ background: '#fff', borderRadius: 16, padding: '40px 32px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)', width: 320, textAlign: 'center' }}>
+        <div style={{ fontSize: 36, marginBottom: 10 }}>🔒</div>
+        <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>셀리맥스 온보딩</div>
+        <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 28 }}>HR 전용 페이지입니다</div>
+        <form onSubmit={handleSubmit}>
+          <input type="password" value={input} onChange={e => setInput(e.target.value)}
+            placeholder="비밀번호 입력" autoFocus
+            style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${error ? '#fca5a5' : '#e2e8f0'}`, borderRadius: 10, padding: '11px 14px', fontSize: 15, color: '#0f172a', marginBottom: 12, background: error ? '#fff5f5' : '#f8fafc', outline: 'none', textAlign: 'center', letterSpacing: 4 }} />
+          <button type="submit" style={{ width: '100%', background: '#3b82f6', border: 'none', borderRadius: 10, padding: 12, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+            입장하기
+          </button>
+        </form>
+        {error && <div style={{ marginTop: 12, fontSize: 13, color: '#dc2626', fontWeight: 600 }}>비밀번호가 틀렸어요 🙅</div>}
+      </div>
+    </div>
+  );
+}
+
 function HRApp() {
   const navigate = useNavigate();
   const [links, setLinks] = useState([]);
@@ -1754,7 +1794,7 @@ export default function App() {
       <div style={{ fontFamily: "'Pretendard','Apple SD Gothic Neo',sans-serif", background: "#f8fafc", minHeight: "100vh", color: "#0f172a" }}>
         <Routes>
           <Route path="/" element={<Navigate to="/onboard" replace />} />
-          <Route path="/onboarding-dashboard/hr" element={<HRApp />} />
+          <Route path="/onboarding-dashboard/hr" element={<HRGate><HRApp /></HRGate>} />
           <Route path="/onboard" element={<OnboardGate />} />
           <Route path="/person/:id" element={<PersonRoute />} />
         </Routes>
