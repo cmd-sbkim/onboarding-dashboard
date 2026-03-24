@@ -653,23 +653,29 @@ function EditModal({ person, onUpdate, onClose, deptGroups: dg }) {
 
 // ── 만족도 설문 폼 ──
 const SURVEY_QUESTIONS = [
-  { id: 'q1', question: '오늘 첫날 전반적인 경험에 대해 만족도를 알려주세요.', type: 'scale', placeholder: '이 점수를 준 이유는 무엇인가요? (선택)' },
-  { id: 'q2', question: '오늘 첫날 해야 할 것들, 스스로 얼마나 잘 파악하고 진행하셨나요?', type: 'scale', placeholder: '이 점수를 준 이유는 무엇인가요? (선택)' },
-  { id: 'q3', question: '생활안내문에서 필요한 정보를 스스로 찾고 이해하는 데 어려움이 없었나요?', type: 'scale', placeholder: '어려움이 있었다면 어떤 부분이었나요? (선택)' },
-  { id: 'q4', question: '오늘 체크리스트 항목들을 진행할 시간이 충분했나요?', type: 'scale', placeholder: '시간이 부족했다면 어떤 이유였나요? (ex. 바로 업무 투입 등) (선택)' },
-  { id: 'q5', question: '첫날 온보딩과 관련해서 자유롭게 남겨주세요.', subtext: '좋았던 점, 아쉬웠던 점, 건의사항 등', type: 'text', placeholder: '자유롭게 작성해주세요 (선택)' },
+  { id: 'q1', question: '오늘 첫날 온보딩 경험은 전반적으로 어떠셨나요?', type: 'scale', placeholder: '이 점수를 주신 이유가 있다면 자유롭게 남겨주세요. (선택)' },
+  { id: 'q2', question: '오늘 온보딩을 통해 첫날 해야 할 일과 진행 방법을 전반적으로 이해하셨나요?', type: 'scale', subtext: "'잘 이해했다'는 것은 아래 상태를 의미해요 🙂\n• 오늘 해야 할 항목을 전반적으로 알고 있고\n• 필요한 정보를 스스로 찾아볼 수 있으며\n• 체크리스트를 큰 어려움 없이 진행할 수 있는 상태", placeholder: '이 점수를 주신 이유를 자유롭게 남겨주세요. (선택)' },
+  { id: 'q3', question: '생활안내문의 내용은 첫날 온보딩을 진행하기에 충분히 이해하기 쉬웠나요?', type: 'scale', placeholder: '부족하거나 아쉬웠던 부분이 있다면 알려주세요. (선택)' },
+  { id: 'q4', question: '오늘 체크리스트 항목들을 진행할 시간이 충분했나요?', type: 'scale', placeholder: '시간이 부족했다면 어떤 이유였나요? (예: 바로 업무 투입, 안내받는 시간이 길었음 등) (선택)' },
+  { id: 'q5', question: '첫날 온보딩과 관련하여 자유롭게 남겨주세요 🙂', subtext: '좋았던 점, 아쉬웠던 점, 건의사항 등', type: 'text', placeholder: '자유롭게 작성해주세요 (선택)' },
 ];
-const SCORE_LABELS = ["", "별로였어요", "아쉬웠어요", "보통이었어요", "좋았어요", "아주 좋았어요!"];
+const SCORE_LABELS = ["", "매우 아니다", "아니다", "보통이에요", "그렇다", "매우 그렇다"];
 
-function StarRating({ value, onChange }) {
+function ScoreSelector({ value, onChange }) {
   return (
-    <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
-      {[1,2,3,4,5].map(s => (
-        <button key={s} onClick={() => onChange(s)}
-          style={{ background: "none", border: "none", fontSize: 28, cursor: "pointer", opacity: s <= value ? 1 : 0.25, transition: "opacity .15s", padding: 2 }}>
-          ⭐
-        </button>
-      ))}
+    <div>
+      <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+        {[1,2,3,4,5].map(s => (
+          <button key={s} onClick={() => onChange(s)}
+            style={{ width: 48, height: 48, borderRadius: 10, border: `2px solid ${value === s ? "#3b82f6" : "#e2e8f0"}`, background: value === s ? "#eff6ff" : "#f8fafc", color: value === s ? "#1d4ed8" : "#94a3b8", fontSize: 18, fontWeight: 700, cursor: "pointer", transition: "all .15s" }}>
+            {s}
+          </button>
+        ))}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#94a3b8", marginTop: 4, padding: "0 2px" }}>
+        <span>매우 아니다</span>
+        <span>매우 그렇다</span>
+      </div>
     </div>
   );
 }
@@ -708,12 +714,12 @@ function SurveyForm({ personId, existingSurvey, onSubmit, surveyQuestions: propQ
         <div key={q.id} style={{ marginBottom: 24, paddingBottom: 24, borderBottom: idx < questions.length - 1 ? "1px solid #f1f5f9" : "none" }}>
           <div style={{ fontSize: 11, color: "#6366f1", fontWeight: 700, marginBottom: 4 }}>Q{idx + 1}</div>
           <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", marginBottom: q.subtext ? 2 : 14, lineHeight: 1.6 }}>{q.question}</div>
-          {q.subtext && <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 14 }}>{q.subtext}</div>}
+          {q.subtext && <div style={{ fontSize: 12, color: "#64748b", marginBottom: 14, whiteSpace: "pre-line", lineHeight: 1.7 }}>{q.subtext}</div>}
           {q.type === 'scale' && (<>
-            <StarRating value={answers[q.id].score} onChange={s => setScore(q.id, s)} />
+            <ScoreSelector value={answers[q.id].score} onChange={s => setScore(q.id, s)} />
             {answers[q.id].score > 0 && (
-              <div style={{ textAlign: "center", fontSize: 12, color: "#f59e0b", margin: "6px 0 10px", fontWeight: 600 }}>
-                {SCORE_LABELS[answers[q.id].score]}
+              <div style={{ textAlign: "center", fontSize: 12, color: "#3b82f6", margin: "8px 0 10px", fontWeight: 600 }}>
+                {answers[q.id].score}점 — {SCORE_LABELS[answers[q.id].score]}
               </div>
             )}
             <textarea value={answers[q.id].feedback} onChange={e => setFeedback(q.id, e.target.value)}
@@ -727,7 +733,7 @@ function SurveyForm({ personId, existingSurvey, onSubmit, surveyQuestions: propQ
           )}
         </div>
       ))}
-      {!isValid && <div style={{ fontSize: 12, color: "#f59e0b", marginBottom: 10, textAlign: "center" }}>Q1~Q4 별점을 모두 선택해주세요 ⭐</div>}
+      {!isValid && <div style={{ fontSize: 12, color: "#f59e0b", marginBottom: 10, textAlign: "center" }}>Q1~Q4 점수를 모두 선택해주세요</div>}
       <button disabled={!isValid || submitting} onClick={async () => {
         setSubmitting(true);
         await onSubmit({ score: answers.q1.score, feedback: answers.q5 || '', answers });
@@ -1209,8 +1215,15 @@ function SatisfactionView({ surveys, people, onDeleteSurvey }) {
       <div style={{ fontSize: 14 }}>아직 제출된 설문이 없어요</div>
     </div>
   );
-  const avg = (surveys.reduce((a, s) => a + s.score, 0) / surveys.length).toFixed(1);
-  const dist = [1,2,3,4,5].map(s => ({ score: s, count: surveys.filter(sv => sv.score === s).length }));
+  const getSurveyScore = (sv) => {
+    if (sv.answers && typeof sv.answers === 'object') {
+      const scores = ['q1','q2','q3','q4'].map(k => sv.answers[k]?.score || 0).filter(s => s > 0);
+      if (scores.length) return scores.reduce((a,b) => a+b, 0) / scores.length;
+    }
+    return sv.score || 0;
+  };
+  const avg = (surveys.reduce((a, sv) => a + getSurveyScore(sv), 0) / surveys.length).toFixed(1);
+  const dist = [1,2,3,4,5].map(s => ({ score: s, count: surveys.filter(sv => Math.round(getSurveyScore(sv)) === s).length }));
   const max = Math.max(...dist.map(d => d.count), 1);
   const personMap = Object.fromEntries(people.map(p => [p.id, p]));
   return (
@@ -1247,7 +1260,7 @@ function SatisfactionView({ surveys, people, onDeleteSurvey }) {
                   {p && <span style={{ fontSize: 12, color: "#64748b", background: "#f1f5f9", borderRadius: 99, padding: "1px 8px" }}>{p.dept}</span>}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 14, color: "#f59e0b" }}>{"⭐".repeat(sv.score)}</span>
+                  <span style={{ fontSize: 13, color: "#f59e0b", fontWeight: 700 }}>⭐ {getSurveyScore(sv).toFixed(1)}</span>
                   {onDeleteSurvey && (
                     <button onClick={(e) => { e.stopPropagation(); if (window.confirm("이 설문을 삭제할까요?")) onDeleteSurvey(sv.id); }}
                       style={{ background: "#fee2e2", border: "none", borderRadius: 6, padding: "3px 8px", color: "#dc2626", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
