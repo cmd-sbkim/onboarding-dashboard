@@ -1436,6 +1436,10 @@ function HRView({ data, links, templates, deptGroups, surveys, onSelect, onAdd, 
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <span style={{ fontSize: 11, color: "#94a3b8", minWidth: 36, fontWeight: 600 }}>입사일</span>
+          <button onClick={() => { const t = new Date().toISOString().slice(0,10); setFilterDateFrom(t); setFilterDateTo(t); }}
+            style={CHIP(filterDateFrom === new Date().toISOString().slice(0,10) && filterDateTo === new Date().toISOString().slice(0,10))}>
+            오늘
+          </button>
           <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)}
             style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "4px 10px", fontSize: 12, color: "#0f172a", cursor: "pointer" }} />
           <span style={{ fontSize: 12, color: "#94a3b8" }}>~</span>
