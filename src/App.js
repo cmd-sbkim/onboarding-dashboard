@@ -1243,15 +1243,22 @@ function SettingsView({ deptGroups, onSaveDeptGroups, links, templates, onSaveLi
 // ── 만족도 대시보드 ──
 function SatisfactionView({ surveys, people, onDeleteSurvey, surveyQuestions }) {
   const questions = (surveyQuestions && surveyQuestions.length) ? surveyQuestions : SURVEY_QUESTIONS;
+  const [openAccordions, setOpenAccordions] = useState(new Set());
+  const [aiInsights, setAiInsights] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(null);
+
   if (!surveys.length) return (
     <div style={{ padding: 24, textAlign: "center", color: "#94a3b8", paddingTop: 80 }}>
       <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
       <div style={{ fontSize: 14 }}>아직 제출된 설문이 없어요</div>
     </div>
   );
+
   const getSurveyScore = (sv) => {
     if (sv.answers && typeof sv.answers === 'object') {
-      const scores = ['q1','q2','q3','q4'].map(k => sv.answers[k]?.score || 0).filter(s => s > 0);
+      const scaleIds = questions.filter(q => q.type === 'scale').map(q => q.id);
+      const scores = scaleIds.map(k => sv.answers[k]?.score || 0).filter(s => s > 0);
       if (scores.length) return scores.reduce((a,b) => a+b, 0) / scores.length;
     }
     return sv.score || 0;
@@ -1266,9 +1273,69 @@ function SatisfactionView({ surveys, people, onDeleteSurvey, surveyQuestions }) 
   });
   const personMap = Object.fromEntries(people.map(p => [p.id, p]));
   const scoreColor = (v) => v === null ? "#94a3b8" : v >= 4.5 ? "#16a34a" : v >= 3.5 ? "#2563eb" : "#ea580c";
+
+  // 주관식 응답 모아보기
+  const textResponses = questions.map((q, qIdx) => {
+    const responses = surveys.map(sv => {
+      const person = personMap[sv.person_id];
+      const val = q.type === 'text'
+        ? (sv.answers?.[q.id] || sv.answers?.q5 || '')
+        : (sv.answers?.[q.id]?.feedback || '');
+      return val?.trim() ? { text: val.trim(), name: person?.name || '익명' } : null;
+    }).filter(Boolean);
+    return { q, qIdx, responses };
+  }).filter(item => item.responses.length > 0);
+
+  const toggleAccordion = (id) => setOpenAccordions(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
+  // AI 인사이트 생성
+  const generateInsights = async () => {
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const apiKey = process.env.REACT_APP_ANTHROPIC_API_KEY;
+      const avgLines = qAvgs.map(({ q, avg: qa, count }, i) =>
+        `Q${i+1}. ${q.question}: ${qa ? qa + '점' : '응답없음'} (${count}명 응답)`
+      ).join('\n');
+      const feedbackLines = textResponses.map(({ q, qIdx, responses }) =>
+        `Q${qIdx+1}. ${q.question}\n${responses.map(r => `  - "${r.text}" (${r.name})`).join('\n')}`
+      ).join('\n\n');
+      const prompt = `당신은 HR 온보딩 전문가입니다. 아래는 신규입사자들의 첫날 온보딩 만족도 조사 결과입니다.\n\n[문항별 평균 점수]\n${avgLines}\n\n[주관식 응답]\n${feedbackLines || '주관식 응답 없음'}\n\n위 데이터를 분석하여 다음을 한국어로 작성해주세요:\n\n1. 📊 문항별 핵심 인사이트 (각 2-3줄, 점수와 주관식 응답 종합)\n2. 🚀 온보딩 개선 Action Items (3-5개, 구체적이고 실행 가능하게)\n3. 💡 전반적 인사이트 및 패턴`;
+
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5',
+          max_tokens: 1200,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      setAiInsights(data.content[0].text);
+    } catch (e) {
+      setAiError(e.message || '오류가 발생했어요');
+    }
+    setAiLoading(false);
+  };
+
+  const hasApiKey = !!process.env.REACT_APP_ANTHROPIC_API_KEY;
+
   return (
     <div style={{ padding: 24, maxWidth: 720, margin: "0 auto" }}>
       <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", marginBottom: 24 }}>📊 만족도 현황</div>
+
+      {/* 통계 카드 */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
         <div style={{ background: "#fffbeb", borderRadius: 12, padding: "18px 20px", border: "1px solid #fde68a" }}>
           <div style={{ fontSize: 12, color: "#92400e", marginBottom: 4, fontWeight: 500 }}>평균 점수</div>
@@ -1288,7 +1355,9 @@ function SatisfactionView({ surveys, people, onDeleteSurvey, surveyQuestions }) 
           ))}
         </div>
       </div>
-      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "16px 20px", marginBottom: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+
+      {/* 문항별 평균 */}
+      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "16px 20px", marginBottom: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
         <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 12 }}>문항별 평균</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {qAvgs.map(({ q, avg: qa, count }, idx) => (
@@ -1303,6 +1372,79 @@ function SatisfactionView({ surveys, people, onDeleteSurvey, surveyQuestions }) 
           ))}
         </div>
       </div>
+
+      {/* 주관식 응답 모아보기 */}
+      {textResponses.length > 0 && (
+        <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, marginBottom: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.04)", overflow: "hidden" }}>
+          <div style={{ padding: "14px 20px", borderBottom: "1px solid #f1f5f9" }}>
+            <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>📝 주관식 응답 모아보기</span>
+          </div>
+          {textResponses.map(({ q, qIdx, responses }) => {
+            const isOpen = openAccordions.has(q.id);
+            return (
+              <div key={q.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                <button onClick={() => toggleAccordion(q.id)} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 20px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 11, color: "#6366f1", fontWeight: 700 }}>Q{qIdx + 1}</span>
+                    <span style={{ fontSize: 12, color: "#334155", fontWeight: 500 }}>{q.question.length > 30 ? q.question.slice(0, 30) + '…' : q.question}</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontSize: 11, color: "#94a3b8" }}>{responses.length}개 응답</span>
+                    <span style={{ fontSize: 10, color: "#94a3b8" }}>{isOpen ? '▲' : '▼'}</span>
+                  </div>
+                </button>
+                {isOpen && (
+                  <div style={{ padding: "4px 20px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+                    {responses.map((r, i) => (
+                      <div key={i} style={{ background: "#f8fafc", borderRadius: 10, padding: "10px 14px", borderLeft: "3px solid #6366f1" }}>
+                        <div style={{ fontSize: 11, color: "#6366f1", fontWeight: 600, marginBottom: 4 }}>{r.name}</div>
+                        <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.6 }}>{r.text}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* AI 인사이트 */}
+      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "16px 20px", marginBottom: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: aiInsights ? 16 : 0 }}>
+          <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>🤖 AI 인사이트</span>
+          {hasApiKey ? (
+            <button onClick={generateInsights} disabled={aiLoading}
+              style={{ background: aiLoading ? "#f1f5f9" : "#6366f1", border: "none", borderRadius: 8, padding: "7px 16px", color: aiLoading ? "#94a3b8" : "#fff", fontSize: 12, fontWeight: 700, cursor: aiLoading ? "default" : "pointer" }}>
+              {aiLoading ? "✦ AI 분석 중..." : aiInsights ? "🔄 다시 생성" : "✦ 인사이트 생성"}
+            </button>
+          ) : (
+            <span style={{ fontSize: 11, color: "#f59e0b" }}>API 키 설정 필요</span>
+          )}
+        </div>
+        {!hasApiKey && (
+          <div style={{ marginTop: 12, background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "10px 14px" }}>
+            <div style={{ fontSize: 12, color: "#92400e", fontWeight: 600, marginBottom: 4 }}>Vercel 환경변수 설정 필요</div>
+            <div style={{ fontSize: 11, color: "#a16207", lineHeight: 1.6 }}>
+              Vercel 대시보드 → Settings → Environment Variables<br />
+              <code style={{ background: "#fef3c7", padding: "1px 4px", borderRadius: 4 }}>REACT_APP_ANTHROPIC_API_KEY</code> = <code style={{ background: "#fef3c7", padding: "1px 4px", borderRadius: 4 }}>sk-ant-...</code>
+            </div>
+          </div>
+        )}
+        {aiError && (
+          <div style={{ marginTop: 12, background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#dc2626" }}>
+            오류: {aiError}
+          </div>
+        )}
+        {aiInsights && (
+          <div style={{ background: "#f8fafc", borderRadius: 10, padding: "16px", fontSize: 13, color: "#1e293b", lineHeight: 1.8, whiteSpace: "pre-wrap", fontFamily: "inherit" }}>
+            {aiInsights}
+          </div>
+        )}
+      </div>
+
+      {/* 개별 설문 목록 */}
+      <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 10 }}>개별 응답 ({surveys.length}건)</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {[...surveys].sort((a,b) => new Date(b.submitted_at) - new Date(a.submitted_at)).map(sv => {
           const p = personMap[sv.person_id];
