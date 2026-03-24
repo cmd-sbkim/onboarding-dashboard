@@ -120,6 +120,7 @@ const DEPT_GROUPS = [
 ];
 
 function calcProgress(steps) {
+  if (!steps?.length) return 0;
   const all = steps.flatMap(s => s.items);
   if (!all.length) return 0;
   return Math.round(all.filter(i => i.done).length / all.length * 100);
@@ -797,7 +798,7 @@ function PersonView({ person, links, templateMeta, survey, surveyQuestions, surv
   const outro = templateMeta?.outro || "";
   const { isMobile } = useWindowSize();
   const [collapsed, setCollapsed] = useState(() =>
-    Object.fromEntries(person.steps.map((s, i) => [i, Math.round(s.items.filter(it => it.done).length / (s.items.length || 1) * 100) === 100]))
+    Object.fromEntries((person.steps || []).map((s, i) => [i, Math.round(s.items.filter(it => it.done).length / (s.items.length || 1) * 100) === 100]))
   );
   const [showPw, setShowPw] = useState(false);
   const [googleEdit, setGoogleEdit] = useState({ account: person.google_account || "", password: person.google_password || "" });
@@ -900,7 +901,7 @@ function PersonView({ person, links, templateMeta, survey, surveyQuestions, surv
           ))}
         </div>
       )}
-      {person.steps.map((step, si) => {
+      {(person.steps || []).map((step, si) => {
         const stepPct = Math.round(step.items.filter(i => i.done).length / (step.items.length || 1) * 100);
         const isCollapsed = collapsed[si];
         return (
@@ -1341,6 +1342,8 @@ function HRView({ data, links, templates, deptGroups, surveys, onSelect, onAdd, 
   const [filterGroup, setFilterGroup] = useState("전체");
   const [filterStatus, setFilterStatus] = useState("전체");
   const [filterTemplate, setFilterTemplate] = useState("전체");
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
   const surveyedIds = new Set((surveys || []).map(s => s.person_id));
 
   const totalDone = data.filter(d => calcProgress(d.steps) === 100).length;
@@ -1371,6 +1374,9 @@ function HRView({ data, links, templates, deptGroups, surveys, onSelect, onAdd, 
       const tmplName = templates[d.template_key || d.templateKey]?.name;
       if (tmplName !== filterTemplate) return false;
     }
+    const joinDate = d.join_date || d.joinDate;
+    if (filterDateFrom && joinDate && joinDate < filterDateFrom) return false;
+    if (filterDateTo && joinDate && joinDate > filterDateTo) return false;
     return true;
   });
 
@@ -1427,6 +1433,20 @@ function HRView({ data, links, templates, deptGroups, surveys, onSelect, onAdd, 
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <span style={{ fontSize: 11, color: "#94a3b8", minWidth: 36, fontWeight: 600 }}>템플릿</span>
           {templateNames.map(t => <button key={t} style={CHIP(filterTemplate === t)} onClick={() => setFilterTemplate(t)}>{t}</button>)}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 11, color: "#94a3b8", minWidth: 36, fontWeight: 600 }}>입사일</span>
+          <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)}
+            style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "4px 10px", fontSize: 12, color: "#0f172a", cursor: "pointer" }} />
+          <span style={{ fontSize: 12, color: "#94a3b8" }}>~</span>
+          <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)}
+            style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "4px 10px", fontSize: 12, color: "#0f172a", cursor: "pointer" }} />
+          {(filterDateFrom || filterDateTo) && (
+            <button onClick={() => { setFilterDateFrom(""); setFilterDateTo(""); }}
+              style={{ background: "#fee2e2", border: "none", borderRadius: 8, padding: "4px 10px", color: "#dc2626", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+              초기화
+            </button>
+          )}
         </div>
       </div>
 
@@ -1496,7 +1516,7 @@ function PersonRoute() {
       .channel(`person-${id}`)
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'people', filter: `id=eq.${id}` },
-        (payload) => { setPerson(payload.new); }
+        (payload) => { setPerson(prev => ({ ...prev, ...payload.new })); }
       )
       .subscribe();
 
