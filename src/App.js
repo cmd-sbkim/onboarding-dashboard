@@ -1551,7 +1551,7 @@ function PersonRoute() {
       입사자를 찾을 수 없습니다.
     </div>
   );
-  return <PersonView person={person} links={links} templateMeta={templateMeta} survey={survey} surveyQuestions={surveyQuestions} surveyPosition={surveyPosition} onBack={fromHR ? () => navigate('/hr') : undefined} onToggle={toggleItem} onSubmitSurvey={submitSurvey} onUpdatePerson={fromHR ? updatePersonMeta : undefined} />;
+  return <PersonView person={person} links={links} templateMeta={templateMeta} survey={survey} surveyQuestions={surveyQuestions} surveyPosition={surveyPosition} onBack={fromHR ? () => navigate('/onboarding-dashboard/hr') : undefined} onToggle={toggleItem} onSubmitSurvey={submitSurvey} onUpdatePerson={fromHR ? updatePersonMeta : undefined} />;
 }
 
 // ── HR 앱 ──
@@ -1754,7 +1754,7 @@ export default function App() {
       <div style={{ fontFamily: "'Pretendard','Apple SD Gothic Neo',sans-serif", background: "#f8fafc", minHeight: "100vh", color: "#0f172a" }}>
         <Routes>
           <Route path="/" element={<Navigate to="/onboard" replace />} />
-          <Route path="/hr" element={<HRApp />} />
+          <Route path="/onboarding-dashboard/hr" element={<HRApp />} />
           <Route path="/onboard" element={<OnboardGate />} />
           <Route path="/person/:id" element={<PersonRoute />} />
         </Routes>
