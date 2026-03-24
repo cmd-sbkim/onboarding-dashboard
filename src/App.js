@@ -661,20 +661,22 @@ const SURVEY_QUESTIONS = [
 ];
 const SCORE_LABELS = ["", "매우 아니다", "아니다", "보통이에요", "그렇다", "매우 그렇다"];
 
-function ScoreSelector({ value, onChange }) {
+function ScoreSelector({ value, onChange, minLabel, maxLabel }) {
+  const min = minLabel || "매우 아니다";
+  const max = maxLabel || "매우 그렇다";
   return (
     <div>
-      <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+      <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
         {[1,2,3,4,5].map(s => (
           <button key={s} onClick={() => onChange(s)}
-            style={{ width: 48, height: 48, borderRadius: 10, border: `2px solid ${value === s ? "#3b82f6" : "#e2e8f0"}`, background: value === s ? "#eff6ff" : "#f8fafc", color: value === s ? "#1d4ed8" : "#94a3b8", fontSize: 18, fontWeight: 700, cursor: "pointer", transition: "all .15s" }}>
-            {s}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: "2px", fontSize: 36, lineHeight: 1, transition: "transform .1s", transform: value >= s ? "scale(1.1)" : "scale(1)" }}>
+            {value >= s ? "⭐" : "☆"}
           </button>
         ))}
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#94a3b8", marginTop: 4, padding: "0 2px" }}>
-        <span>매우 아니다</span>
-        <span>매우 그렇다</span>
+        <span>{min}</span>
+        <span>{max}</span>
       </div>
     </div>
   );
@@ -723,7 +725,7 @@ function SurveyForm({ personId, existingSurvey, onSubmit, surveyQuestions: propQ
           <div style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", marginBottom: q.subtext ? 2 : 14, lineHeight: 1.6 }}>{q.question}</div>
           {q.subtext && <div style={{ fontSize: 12, color: "#64748b", marginBottom: 14, whiteSpace: "pre-line", lineHeight: 1.7 }}>{q.subtext}</div>}
           {q.type === 'scale' && (<>
-            <ScoreSelector value={answers[q.id]?.score || 0} onChange={s => setScore(q.id, s)} />
+            <ScoreSelector value={answers[q.id]?.score || 0} onChange={s => setScore(q.id, s)} minLabel={q.minLabel} maxLabel={q.maxLabel} />
             {(answers[q.id]?.score || 0) > 0 && (
               <div style={{ textAlign: "center", fontSize: 12, color: "#3b82f6", margin: "8px 0 10px", fontWeight: 600 }}>
                 {answers[q.id].score}점 — {SCORE_LABELS[answers[q.id].score]}
@@ -1082,6 +1084,18 @@ function SurveyQuestionsManager({ questions, onSave, surveyPosition, onSaveSurve
                         주관식 필수
                       </label>
                     </div>
+                    {q.type === 'scale' && (
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}>
+                        <span style={{ fontSize: 11, color: "#94a3b8", whiteSpace: "nowrap" }}>1점 레이블</span>
+                        <input value={q.minLabel || ""} onChange={e => updateQ(idx, "minLabel", e.target.value)}
+                          placeholder="예: 매우 나쁨"
+                          style={{ flex: 1, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 6, padding: "4px 8px", fontSize: 12, color: "#0f172a" }} />
+                        <span style={{ fontSize: 11, color: "#94a3b8", whiteSpace: "nowrap" }}>5점 레이블</span>
+                        <input value={q.maxLabel || ""} onChange={e => updateQ(idx, "maxLabel", e.target.value)}
+                          placeholder="예: 매우 좋음"
+                          style={{ flex: 1, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 6, padding: "4px 8px", fontSize: 12, color: "#0f172a" }} />
+                      </div>
+                    )}
                   </div>
                   <button onClick={() => removeQ(idx)} style={{ background: "#fee2e2", border: "none", borderRadius: 6, padding: "4px 8px", color: "#dc2626", fontSize: 12, cursor: "pointer", flexShrink: 0 }}>삭제</button>
                 </div>
