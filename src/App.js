@@ -1297,7 +1297,7 @@ function SatisfactionView({ surveys, people, onDeleteSurvey, surveyQuestions }) 
     setAiLoading(true);
     setAiError(null);
     try {
-      const apiKey = process.env.REACT_APP_ANTHROPIC_API_KEY;
+      const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
       const avgLines = qAvgs.map(({ q, avg: qa, count }, i) =>
         `Q${i+1}. ${q.question}: ${qa ? qa + '점' : '응답없음'} (${count}명 응답)`
       ).join('\n');
@@ -1306,30 +1306,23 @@ function SatisfactionView({ surveys, people, onDeleteSurvey, surveyQuestions }) 
       ).join('\n\n');
       const prompt = `당신은 HR 온보딩 전문가입니다. 아래는 신규입사자들의 첫날 온보딩 만족도 조사 결과입니다.\n\n[문항별 평균 점수]\n${avgLines}\n\n[주관식 응답]\n${feedbackLines || '주관식 응답 없음'}\n\n위 데이터를 분석하여 다음을 한국어로 작성해주세요:\n\n1. 📊 문항별 핵심 인사이트 (각 2-3줄, 점수와 주관식 응답 종합)\n2. 🚀 온보딩 개선 Action Items (3-5개, 구체적이고 실행 가능하게)\n3. 💡 전반적 인사이트 및 패턴`;
 
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5',
-          max_tokens: 1200,
-          messages: [{ role: 'user', content: prompt }],
+          contents: [{ parts: [{ text: prompt }] }],
         }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error.message);
-      setAiInsights(data.content[0].text);
+      setAiInsights(data.candidates[0].content.parts[0].text);
     } catch (e) {
       setAiError(e.message || '오류가 발생했어요');
     }
     setAiLoading(false);
   };
 
-  const hasApiKey = !!process.env.REACT_APP_ANTHROPIC_API_KEY;
+  const hasApiKey = !!process.env.REACT_APP_GEMINI_API_KEY;
 
   return (
     <div style={{ padding: 24, maxWidth: 720, margin: "0 auto" }}>
@@ -1427,7 +1420,7 @@ function SatisfactionView({ surveys, people, onDeleteSurvey, surveyQuestions }) 
             <div style={{ fontSize: 12, color: "#92400e", fontWeight: 600, marginBottom: 4 }}>Vercel 환경변수 설정 필요</div>
             <div style={{ fontSize: 11, color: "#a16207", lineHeight: 1.6 }}>
               Vercel 대시보드 → Settings → Environment Variables<br />
-              <code style={{ background: "#fef3c7", padding: "1px 4px", borderRadius: 4 }}>REACT_APP_ANTHROPIC_API_KEY</code> = <code style={{ background: "#fef3c7", padding: "1px 4px", borderRadius: 4 }}>sk-ant-...</code>
+              <code style={{ background: "#fef3c7", padding: "1px 4px", borderRadius: 4 }}>REACT_APP_GEMINI_API_KEY</code> = <code style={{ background: "#fef3c7", padding: "1px 4px", borderRadius: 4 }}>AIza...</code>
             </div>
           </div>
         )}
