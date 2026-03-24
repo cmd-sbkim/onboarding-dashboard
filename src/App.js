@@ -1244,9 +1244,6 @@ function SettingsView({ deptGroups, onSaveDeptGroups, links, templates, onSaveLi
 function SatisfactionView({ surveys, people, onDeleteSurvey, surveyQuestions }) {
   const questions = (surveyQuestions && surveyQuestions.length) ? surveyQuestions : SURVEY_QUESTIONS;
   const [openAccordions, setOpenAccordions] = useState(new Set());
-  const [aiInsights, setAiInsights] = useState(null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState(null);
 
   if (!surveys.length) return (
     <div style={{ padding: 24, textAlign: "center", color: "#94a3b8", paddingTop: 80 }}>
@@ -1291,38 +1288,6 @@ function SatisfactionView({ surveys, people, onDeleteSurvey, surveyQuestions }) 
     next.has(id) ? next.delete(id) : next.add(id);
     return next;
   });
-
-  // AI 인사이트 생성
-  const generateInsights = async () => {
-    setAiLoading(true);
-    setAiError(null);
-    try {
-      const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
-      const avgLines = qAvgs.map(({ q, avg: qa, count }, i) =>
-        `Q${i+1}. ${q.question}: ${qa ? qa + '점' : '응답없음'} (${count}명 응답)`
-      ).join('\n');
-      const feedbackLines = textResponses.map(({ q, qIdx, responses }) =>
-        `Q${qIdx+1}. ${q.question}\n${responses.map(r => `  - "${r.text}" (${r.name})`).join('\n')}`
-      ).join('\n\n');
-      const prompt = `당신은 HR 온보딩 전문가입니다. 아래는 신규입사자들의 첫날 온보딩 만족도 조사 결과입니다.\n\n[문항별 평균 점수]\n${avgLines}\n\n[주관식 응답]\n${feedbackLines || '주관식 응답 없음'}\n\n위 데이터를 분석하여 다음을 한국어로 작성해주세요:\n\n1. 📊 문항별 핵심 인사이트 (각 2-3줄, 점수와 주관식 응답 종합)\n2. 🚀 온보딩 개선 Action Items (3-5개, 구체적이고 실행 가능하게)\n3. 💡 전반적 인사이트 및 패턴`;
-
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-        }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error.message);
-      setAiInsights(data.candidates[0].content.parts[0].text);
-    } catch (e) {
-      setAiError(e.message || '오류가 발생했어요');
-    }
-    setAiLoading(false);
-  };
-
-  const hasApiKey = !!process.env.REACT_APP_GEMINI_API_KEY;
 
   return (
     <div style={{ padding: 24, maxWidth: 720, margin: "0 auto" }}>
@@ -1401,40 +1366,6 @@ function SatisfactionView({ surveys, people, onDeleteSurvey, surveyQuestions }) 
           })}
         </div>
       )}
-
-      {/* AI 인사이트 */}
-      <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "16px 20px", marginBottom: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: aiInsights ? 16 : 0 }}>
-          <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>🤖 AI 인사이트</span>
-          {hasApiKey ? (
-            <button onClick={generateInsights} disabled={aiLoading}
-              style={{ background: aiLoading ? "#f1f5f9" : "#6366f1", border: "none", borderRadius: 8, padding: "7px 16px", color: aiLoading ? "#94a3b8" : "#fff", fontSize: 12, fontWeight: 700, cursor: aiLoading ? "default" : "pointer" }}>
-              {aiLoading ? "✦ AI 분석 중..." : aiInsights ? "🔄 다시 생성" : "✦ 인사이트 생성"}
-            </button>
-          ) : (
-            <span style={{ fontSize: 11, color: "#f59e0b" }}>API 키 설정 필요</span>
-          )}
-        </div>
-        {!hasApiKey && (
-          <div style={{ marginTop: 12, background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "10px 14px" }}>
-            <div style={{ fontSize: 12, color: "#92400e", fontWeight: 600, marginBottom: 4 }}>Vercel 환경변수 설정 필요</div>
-            <div style={{ fontSize: 11, color: "#a16207", lineHeight: 1.6 }}>
-              Vercel 대시보드 → Settings → Environment Variables<br />
-              <code style={{ background: "#fef3c7", padding: "1px 4px", borderRadius: 4 }}>REACT_APP_GEMINI_API_KEY</code> = <code style={{ background: "#fef3c7", padding: "1px 4px", borderRadius: 4 }}>AIza...</code>
-            </div>
-          </div>
-        )}
-        {aiError && (
-          <div style={{ marginTop: 12, background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#dc2626" }}>
-            오류: {aiError}
-          </div>
-        )}
-        {aiInsights && (
-          <div style={{ background: "#f8fafc", borderRadius: 10, padding: "16px", fontSize: 13, color: "#1e293b", lineHeight: 1.8, whiteSpace: "pre-wrap", fontFamily: "inherit" }}>
-            {aiInsights}
-          </div>
-        )}
-      </div>
 
       {/* 개별 설문 목록 */}
       <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 10 }}>개별 응답 ({surveys.length}건)</div>
