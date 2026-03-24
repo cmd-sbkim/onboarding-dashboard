@@ -1329,7 +1329,7 @@ function PersonCard({ d, templates, copied, hasSurvey, onSelect, onCopy, onDelet
         <span style={{ fontSize: 13, fontWeight: 700, color: pct === 100 ? "#16a34a" : "#f59e0b", minWidth: 36 }}>{pct}%</span>
       </div>
       <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-        {d.steps.map((s, i) => {
+        {(d.steps || []).map((s, i) => {
           const sPct = Math.round(s.items.filter(it => it.done).length / (s.items.length || 1) * 100);
           return <span key={i} style={{ fontSize: 11, borderRadius: 6, padding: "2px 8px", background: sPct === 100 ? "#f0fdf4" : "#fff7ed", color: sPct === 100 ? "#15803d" : "#c2410c", border: `1px solid ${sPct === 100 ? "#bbf7d0" : "#fed7aa"}` }}>{i+1}단계 {sPct === 100 ? "✓" : `${sPct}%`}</span>;
         })}
