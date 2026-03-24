@@ -752,9 +752,9 @@ function OnboardGate() {
     if (!cleaned) return setError("핸드폰 번호를 입력해주세요");
     setLoading(true);
     setError("");
-    const { data } = await supabase.from('people').select('id').eq('phone', cleaned).maybeSingle();
-    if (data) {
-      navigate(`/person/${data.id}`);
+    const { data } = await supabase.from('people').select('id').eq('phone', cleaned).limit(1);
+    if (data && data.length > 0) {
+      navigate(`/person/${data[0].id}`);
     } else {
       setError("등록된 정보가 없습니다. HR 담당자에게 문의해주세요.");
       setLoading(false);
