@@ -823,14 +823,15 @@ function PersonView({ person, links, templateMeta, survey, surveyQuestions, surv
     Object.fromEntries((person.steps || []).map((s, i) => [i, Math.round(s.items.filter(it => it.done).length / (s.items.length || 1) * 100) === 100]))
   );
 
-  const [googleEdit, setGoogleEdit] = useState({ account: person.google_account || "", password: person.google_password || "" });
+  const getEmailPrefix = (email) => email ? email.split("@")[0] : "";
+  const [googleEdit, setGoogleEdit] = useState({ account: getEmailPrefix(person.google_account), password: person.google_password || "" });
   const [savingGoogle, setSavingGoogle] = useState(false);
   const [googleSaved, setGoogleSaved] = useState(false);
   const toggleCollapse = (si) => setCollapsed(prev => ({ ...prev, [si]: !prev[si] }));
 
   const handleSaveGoogle = async () => {
     setSavingGoogle(true);
-    await onUpdatePerson({ google_account: googleEdit.account, google_password: googleEdit.password });
+    await onUpdatePerson({ google_account: googleEdit.account ? `${googleEdit.account}@celimax.co.kr` : "", google_password: googleEdit.password });
     setSavingGoogle(false);
     setGoogleSaved(true);
     setTimeout(() => setGoogleSaved(false), 2000);
@@ -861,9 +862,12 @@ function PersonView({ person, links, templateMeta, survey, surveyQuestions, surv
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <div>
                   <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}>이메일</div>
-                  <input value={googleEdit.account} onChange={e => setGoogleEdit(p => ({ ...p, account: e.target.value }))}
-                    placeholder="example@gmail.com"
-                    style={{ width: "100%", background: "#fff", border: "1px solid #bfdbfe", borderRadius: 6, padding: "7px 10px", fontSize: 13, color: "#0f172a", boxSizing: "border-box" }} />
+                  <div style={{ display: "flex", alignItems: "center", background: "#fff", border: "1px solid #bfdbfe", borderRadius: 6, overflow: "hidden" }}>
+                    <input value={googleEdit.account} onChange={e => setGoogleEdit(p => ({ ...p, account: e.target.value }))}
+                      placeholder="아이디"
+                      style={{ flex: 1, border: "none", outline: "none", padding: "7px 10px", fontSize: 13, color: "#0f172a", background: "transparent", minWidth: 0 }} />
+                    <span style={{ padding: "7px 10px", background: "#dbeafe", color: "#1d4ed8", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", borderLeft: "1px solid #bfdbfe" }}>@celimax.co.kr</span>
+                  </div>
                 </div>
                 <div>
                   <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4 }}>초기 비밀번호</div>
@@ -892,6 +896,14 @@ function PersonView({ person, links, templateMeta, survey, surveyQuestions, surv
               </div>
             </div>
           ) : null}
+          {!onUpdatePerson && person.google_account && (
+            <button onClick={() => {
+              const url = `${window.location.origin}/person/${person.id}`;
+              window.location.href = `mailto:${person.google_account}?subject=${encodeURIComponent('온보딩 체크리스트 링크')}&body=${encodeURIComponent(`안녕하세요, ${person.name}님!\n\nPC에서 아래 링크로 온보딩 체크리스트를 확인하세요 😊\n\n${url}`)}`;
+            }} style={{ width: "100%", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "9px", color: "#15803d", fontWeight: 700, fontSize: 13, cursor: "pointer", marginBottom: 12 }}>
+              📧 내 이메일로 링크 보내기
+            </button>
+          )}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <ProgressBar pct={pct} height={10} />
             <span style={{ fontSize: 14, fontWeight: 700, color: "#f59e0b", minWidth: 36 }}>{pct}%</span>
