@@ -717,8 +717,7 @@ function SurveyForm({ personId, existingSurvey, onSubmit, surveyQuestions: propQ
 
   return (
     <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "18px 18px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-      <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>📝 온보딩 만족도 조사</div>
-      <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 20 }}>솔직한 의견이 온보딩 개선에 큰 도움이 됩니다.</div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", marginBottom: 20 }}>📝 온보딩 만족도 조사</div>
       {questions.map((q, idx) => (
         <div key={q.id} style={{ marginBottom: 24, paddingBottom: 24, borderBottom: idx < questions.length - 1 ? "1px solid #f1f5f9" : "none" }}>
           <div style={{ fontSize: 11, color: "#6366f1", fontWeight: 700, marginBottom: 4 }}>Q{idx + 1}</div>
