@@ -669,8 +669,8 @@ function ScoreSelector({ value, onChange, minLabel, maxLabel }) {
       <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
         {[1,2,3,4,5].map(s => (
           <button key={s} onClick={() => onChange(s)}
-            style={{ background: "none", border: "none", cursor: "pointer", padding: "2px", fontSize: 36, lineHeight: 1, transition: "transform .1s", transform: value >= s ? "scale(1.1)" : "scale(1)" }}>
-            {value >= s ? "⭐" : "☆"}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: "2px", fontSize: 36, lineHeight: 1, transition: "transform .1s", transform: value >= s ? "scale(1.1)" : "scale(1)", opacity: value >= s ? 1 : 0.25 }}>
+            ⭐
           </button>
         ))}
       </div>
@@ -1084,6 +1084,9 @@ function SurveyQuestionsManager({ questions, onSave, surveyPosition, onSaveSurve
                         주관식 필수
                       </label>
                     </div>
+                    <textarea value={q.subtext || ""} onChange={e => updateQ(idx, "subtext", e.target.value)}
+                      placeholder="문항 설명 (선택) — 입사자 화면에 문항 아래에 표시됩니다"
+                      style={{ width: "100%", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 6, padding: "6px 10px", fontSize: 12, color: "#64748b", boxSizing: "border-box", marginTop: 6, resize: "vertical", minHeight: 44, fontFamily: "inherit" }} />
                     {q.type === 'scale' && (
                       <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}>
                         <span style={{ fontSize: 11, color: "#94a3b8", whiteSpace: "nowrap" }}>1점 레이블</span>
