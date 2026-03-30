@@ -394,7 +394,7 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
     <div style={{ padding: "0 0 24px" }}>
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <button style={TAB_STYLE(tab === "links")} onClick={() => setTab("links")}>🔗 가이드 링크</button>
-        {Object.entries(editTemplates).map(([key, t]) => (
+        {Object.entries(editTemplates).sort(([a], [b]) => a === 'default' ? -1 : b === 'default' ? 1 : 0).map(([key, t]) => (
           <button key={key} style={TAB_STYLE(tab === key)} onClick={() => setTab(key)}>{t.name}</button>
         ))}
         {showAddTemplate ? (
