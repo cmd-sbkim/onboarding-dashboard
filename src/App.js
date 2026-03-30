@@ -520,7 +520,7 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
 // ── 입사자 추가 모달 ──
 function AddModal({ onAdd, onClose, templates, deptGroups: dg }) {
   const groups = (dg && dg.length > 0) ? dg : DEPT_GROUPS;
-  const [form, setForm] = useState({ name: "", phone: "", deptGroup: groups[0].group, dept: groups[0].depts[0] || "", joinDate: new Date().toISOString().slice(0, 10), templateKey: Object.keys(templates)[0] });
+  const [form, setForm] = useState({ name: "", phone: "", deptGroup: groups[0].group, dept: groups[0].depts[0] || "", joinDate: new Date().toISOString().slice(0, 10), templateKey: templates['default'] ? 'default' : Object.keys(templates)[0] });
   const [adding, setAdding] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const currentGroup = groups.find(g => g.group === form.deptGroup) || groups[0];
@@ -559,7 +559,7 @@ function AddModal({ onAdd, onClose, templates, deptGroups: dg }) {
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 12, color: "#64748b", marginBottom: 5, fontWeight: 500 }}>온보딩 템플릿</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {Object.entries(templates).map(([key, t]) => (
+            {Object.entries(templates).sort(([a], [b]) => a === 'default' ? -1 : b === 'default' ? 1 : 0).map(([key, t]) => (
               <label key={key} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", background: form.templateKey === key ? "#eff6ff" : "#f8fafc", border: `1px solid ${form.templateKey === key ? "#bfdbfe" : "#e2e8f0"}`, borderRadius: 8, padding: "8px 12px" }}>
                 <input type="radio" name="template" value={key} checked={form.templateKey === key} onChange={() => set("templateKey", key)} style={{ accentColor: "#3b82f6" }} />
                 <div>
