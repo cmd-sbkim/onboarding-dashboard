@@ -668,8 +668,8 @@ const SURVEY_QUESTIONS = [
 const SCORE_LABELS = ["", "매우 아니다", "아니다", "보통이에요", "그렇다", "매우 그렇다"];
 
 function ScoreSelector({ value, onChange, minLabel, maxLabel }) {
-  const min = minLabel || "매우 아니다";
-  const max = maxLabel || "매우 그렇다";
+  const min = minLabel || "별로였어요";
+  const max = maxLabel || "최고였어요";
   return (
     <div>
       <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
