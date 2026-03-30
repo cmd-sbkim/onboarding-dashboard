@@ -457,6 +457,12 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
               onChange={e => setEditTemplates(prev => ({ ...prev, [tab]: { ...prev[tab], intro: e.target.value } }))}
               style={{ width: "100%", background: "#fff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "10px 12px", color: "#1e40af", fontSize: 13, resize: "vertical", minHeight: 72, boxSizing: "border-box", fontFamily: "inherit" }} />
           </div>
+          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, padding: "14px 16px" }}>
+            <div style={{ fontSize: 12, color: "#15803d", fontWeight: 600, marginBottom: 8 }}>📅 오늘의 일정 (입사자 화면에 접이식 카드로 표시)</div>
+            <textarea value={editTemplates[tab].schedule || ""} placeholder={"예)\n1) 각 층 인사\n   - 11층 → 8층 구성원분들께 인사 및 간단한 자기소개\n2) HR 온보딩 (~40분)\n3) 점심 12:50 ~ 14:00\n   - 오늘은 팀과 함께!\n4) 체크리스트 진행\n\n📶 WiFi: 네트워크명 / 비밀번호: xxxxxx"}
+              onChange={e => setEditTemplates(prev => ({ ...prev, [tab]: { ...prev[tab], schedule: e.target.value } }))}
+              style={{ width: "100%", background: "#fff", border: "1px solid #bbf7d0", borderRadius: 8, padding: "10px 12px", color: "#166534", fontSize: 13, resize: "vertical", minHeight: 120, boxSizing: "border-box", fontFamily: "inherit" }} />
+          </div>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={({ active, over }) => {
             if (active.id !== over?.id) {
               setEditTemplates(prev => {
@@ -817,7 +823,9 @@ function PersonView({ person, links, templateMeta, survey, surveyQuestions, surv
   const pct = calcProgress(person.steps);
   const allDone = pct === 100;
   const intro = templateMeta?.intro || "";
+  const schedule = templateMeta?.schedule || "";
   const outro = templateMeta?.outro || "";
+  const [scheduleOpen, setScheduleOpen] = useState(true);
   const { isMobile } = useWindowSize();
   const [collapsed, setCollapsed] = useState(() =>
     Object.fromEntries((person.steps || []).map((s, i) => [i, Math.round(s.items.filter(it => it.done).length / (s.items.length || 1) * 100) === 100]))
@@ -911,8 +919,21 @@ function PersonView({ person, links, templateMeta, survey, surveyQuestions, surv
         </div>
       )}
       {intro && (
-        <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "14px 16px", marginBottom: 20, fontSize: 13, color: "#1e40af", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
+        <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "14px 16px", marginBottom: 16, fontSize: 13, color: "#1e40af", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
           {intro}
+        </div>
+      )}
+      {schedule && (
+        <div style={{ border: "1px solid #bbf7d0", borderRadius: 12, marginBottom: 16, overflow: "hidden", background: "#fff" }}>
+          <button onClick={() => setScheduleOpen(p => !p)} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: scheduleOpen ? "#f0fdf4" : "#f0fdf4", border: "none", cursor: "pointer", textAlign: "left" }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#15803d" }}>📅 오늘의 일정</span>
+            <span style={{ fontSize: 11, color: "#86efac" }}>{scheduleOpen ? "▲" : "▼"}</span>
+          </button>
+          {scheduleOpen && (
+            <div style={{ padding: "12px 16px 14px", fontSize: 13, color: "#166534", lineHeight: 1.9, whiteSpace: "pre-wrap", borderTop: "1px solid #bbf7d0" }}>
+              {schedule}
+            </div>
+          )}
         </div>
       )}
       {links.length > 0 && (
@@ -1652,7 +1673,7 @@ function PersonRoute() {
       ]);
       if (personRes.data) {
         setPerson(personRes.data);
-        const tmplRes = await supabase.from('templates').select('intro,outro').eq('id', personRes.data.template_key).single();
+        const tmplRes = await supabase.from('templates').select('intro,schedule,outro').eq('id', personRes.data.template_key).single();
         if (tmplRes.data) setTemplateMeta(tmplRes.data);
       }
       setLinks(linksRes.data || []);
@@ -1847,7 +1868,7 @@ function HRApp() {
   const saveTemplates = async (newTemplates) => {
     await Promise.all(
       Object.entries(newTemplates).map(([id, t]) =>
-        supabase.from('templates').upsert({ id, name: t.name, steps: t.steps })
+        supabase.from('templates').upsert({ id, name: t.name, steps: t.steps, schedule: t.schedule || null, intro: t.intro || null, outro: t.outro || null })
       )
     );
     setTemplates(newTemplates);
