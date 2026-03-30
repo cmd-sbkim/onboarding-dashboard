@@ -459,7 +459,7 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
           </div>
           <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, padding: "14px 16px" }}>
             <div style={{ fontSize: 12, color: "#15803d", fontWeight: 600, marginBottom: 8 }}>📅 오늘의 일정 (입사자 화면에 접이식 카드로 표시)</div>
-            <textarea value={editTemplates[tab].schedule || ""} placeholder={"예)\n1) 각 층 인사\n   - 11층 → 8층 구성원분들께 인사 및 간단한 자기소개\n2) HR 온보딩 (~40분)\n3) 점심 12:50 ~ 14:00\n   - 오늘은 팀과 함께!\n4) 체크리스트 진행\n\n📶 WiFi: 네트워크명 / 비밀번호: xxxxxx"}
+            <textarea value={editTemplates[tab].schedule || ""} placeholder="오늘의 일정을 입력하세요"
               onChange={e => setEditTemplates(prev => ({ ...prev, [tab]: { ...prev[tab], schedule: e.target.value } }))}
               style={{ width: "100%", background: "#fff", border: "1px solid #bbf7d0", borderRadius: 8, padding: "10px 12px", color: "#166534", fontSize: 13, resize: "vertical", minHeight: 120, boxSizing: "border-box", fontFamily: "inherit" }} />
           </div>
@@ -1828,7 +1828,7 @@ function HRApp() {
     }
 
     const templatesObj = {};
-    templatesData.forEach(t => { templatesObj[t.id] = { name: t.name, steps: t.steps }; });
+    templatesData.forEach(t => { templatesObj[t.id] = { name: t.name, steps: t.steps, intro: t.intro || "", schedule: t.schedule || "", outro: t.outro || "" }; });
 
     if (configRes.data?.value) setDeptGroups(configRes.data.value);
     setLinks(linksData);
