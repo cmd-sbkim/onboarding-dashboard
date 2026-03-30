@@ -253,7 +253,7 @@ function SortableDeptItem({ id, name, onEdit, onRemove }) {
 }
 
 // ── 템플릿 관리 뷰 ──
-function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDeleteTemplate }) {
+function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDeleteTemplate, templateOrder: initOrder, defaultTemplateKey: initDefault, onSaveTemplateSettings }) {
   const [tab, setTab] = useState("links");
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -267,6 +267,17 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [newTemplateName, setNewTemplateName] = useState("");
   const [showAddTemplate, setShowAddTemplate] = useState(false);
+  const [localOrder, setLocalOrder] = useState(initOrder.length > 0 ? initOrder : Object.keys(templates).sort((a, b) => a === 'default' ? -1 : b === 'default' ? 1 : 0));
+  const [localDefault, setLocalDefault] = useState(initDefault || 'default');
+
+  const moveTab = (key, dir) => setLocalOrder(prev => {
+    const idx = prev.indexOf(key);
+    const next = [...prev];
+    const swapIdx = idx + dir;
+    if (swapIdx < 0 || swapIdx >= next.length) return prev;
+    [next[idx], next[swapIdx]] = [next[swapIdx], next[idx]];
+    return next;
+  });
 
   const addTemplate = () => {
     if (!newTemplateName.trim()) return;
@@ -373,6 +384,7 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
     setSaving(true);
     await onSaveLinks(editLinks);
     await onSaveTemplates(editTemplates);
+    if (onSaveTemplateSettings) await onSaveTemplateSettings(localOrder, localDefault);
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -394,8 +406,16 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
     <div style={{ padding: "0 0 24px" }}>
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <button style={TAB_STYLE(tab === "links")} onClick={() => setTab("links")}>🔗 가이드 링크</button>
-        {Object.entries(editTemplates).sort(([a], [b]) => a === 'default' ? -1 : b === 'default' ? 1 : 0).map(([key, t]) => (
-          <button key={key} style={TAB_STYLE(tab === key)} onClick={() => setTab(key)}>{t.name}</button>
+        {localOrder.filter(key => editTemplates[key]).map((key, idx) => (
+          <div key={key} style={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <button style={TAB_STYLE(tab === key)} onClick={() => setTab(key)}>
+              {localDefault === key ? "⭐ " : ""}{editTemplates[key].name}
+            </button>
+            <button onClick={() => moveTab(key, -1)} disabled={idx === 0}
+              style={{ background: "none", border: "none", cursor: idx === 0 ? "default" : "pointer", color: idx === 0 ? "#cbd5e1" : "#64748b", fontSize: 11, padding: "2px 3px" }}>◀</button>
+            <button onClick={() => moveTab(key, 1)} disabled={idx === localOrder.filter(k => editTemplates[k]).length - 1}
+              style={{ background: "none", border: "none", cursor: idx === localOrder.filter(k => editTemplates[k]).length - 1 ? "default" : "pointer", color: idx === localOrder.filter(k => editTemplates[k]).length - 1 ? "#cbd5e1" : "#64748b", fontSize: 11, padding: "2px 3px" }}>▶</button>
+          </div>
         ))}
         {showAddTemplate ? (
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -446,7 +466,13 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
       {tab !== "links" && editTemplates[tab] && (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "14px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 8 }}>📌 템플릿 이름</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>📌 템플릿 이름</div>
+              {localDefault === tab
+                ? <span style={{ fontSize: 11, background: "#fef9c3", color: "#854d0e", border: "1px solid #fde68a", borderRadius: 6, padding: "2px 8px", fontWeight: 600 }}>⭐ 기본 템플릿</span>
+                : <button onClick={() => setLocalDefault(tab)} style={{ fontSize: 11, background: "#f8fafc", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 6, padding: "2px 8px", cursor: "pointer", fontWeight: 600 }}>기본으로 설정</button>
+              }
+            </div>
             <input value={editTemplates[tab].name || ""} placeholder="템플릿 이름"
               onChange={e => setEditTemplates(prev => ({ ...prev, [tab]: { ...prev[tab], name: e.target.value } }))}
               style={{ width: "100%", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 12px", color: "#0f172a", fontSize: 14, fontWeight: 700, boxSizing: "border-box" }} />
@@ -518,9 +544,10 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
 }
 
 // ── 입사자 추가 모달 ──
-function AddModal({ onAdd, onClose, templates, deptGroups: dg }) {
+function AddModal({ onAdd, onClose, templates, deptGroups: dg, defaultTemplateKey }) {
   const groups = (dg && dg.length > 0) ? dg : DEPT_GROUPS;
-  const [form, setForm] = useState({ name: "", phone: "", deptGroup: groups[0].group, dept: groups[0].depts[0] || "", joinDate: new Date().toISOString().slice(0, 10), templateKey: templates['default'] ? 'default' : Object.keys(templates)[0] });
+  const initTemplateKey = defaultTemplateKey && templates[defaultTemplateKey] ? defaultTemplateKey : (templates['default'] ? 'default' : Object.keys(templates)[0]);
+  const [form, setForm] = useState({ name: "", phone: "", deptGroup: groups[0].group, dept: groups[0].depts[0] || "", joinDate: new Date().toISOString().slice(0, 10), templateKey: initTemplateKey });
   const [adding, setAdding] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const currentGroup = groups.find(g => g.group === form.deptGroup) || groups[0];
@@ -559,7 +586,7 @@ function AddModal({ onAdd, onClose, templates, deptGroups: dg }) {
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 12, color: "#64748b", marginBottom: 5, fontWeight: 500 }}>온보딩 템플릿</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {Object.entries(templates).sort(([a], [b]) => a === 'default' ? -1 : b === 'default' ? 1 : 0).map(([key, t]) => (
+            {Object.entries(templates).sort(([a], [b]) => a === initTemplateKey ? -1 : b === initTemplateKey ? 1 : 0).map(([key, t]) => (
               <label key={key} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", background: form.templateKey === key ? "#eff6ff" : "#f8fafc", border: `1px solid ${form.templateKey === key ? "#bfdbfe" : "#e2e8f0"}`, borderRadius: 8, padding: "8px 12px" }}>
                 <input type="radio" name="template" value={key} checked={form.templateKey === key} onChange={() => set("templateKey", key)} style={{ accentColor: "#3b82f6" }} />
                 <div>
@@ -1166,7 +1193,7 @@ function SurveyQuestionsManager({ questions, onSave, surveyPosition, onSaveSurve
 }
 
 // ── 설정 뷰 ──
-function SettingsView({ deptGroups, onSaveDeptGroups, links, templates, onSaveLinks, onSaveTemplates, onDeleteTemplate, surveyQuestions, onSaveSurveyQuestions, surveyPosition, onSaveSurveyPosition }) {
+function SettingsView({ deptGroups, onSaveDeptGroups, links, templates, onSaveLinks, onSaveTemplates, onDeleteTemplate, surveyQuestions, onSaveSurveyQuestions, surveyPosition, onSaveSurveyPosition, templateOrder, defaultTemplateKey, onSaveTemplateSettings }) {
   const [settingsTab, setSettingsTab] = useState("templates");
   const TAB = (active) => ({
     background: active ? "#3b82f6" : "#fff",
@@ -1208,7 +1235,7 @@ function SettingsView({ deptGroups, onSaveDeptGroups, links, templates, onSaveLi
         <button style={TAB(settingsTab === "survey")} onClick={() => setSettingsTab("survey")}>📝 만족도 문항</button>
       </div>
       {settingsTab === "templates" && (
-        <TemplateManager links={links} templates={templates} onSaveLinks={onSaveLinks} onSaveTemplates={onSaveTemplates} onDeleteTemplate={onDeleteTemplate} />
+        <TemplateManager links={links} templates={templates} onSaveLinks={onSaveLinks} onSaveTemplates={onSaveTemplates} onDeleteTemplate={onDeleteTemplate} templateOrder={templateOrder || []} defaultTemplateKey={defaultTemplateKey || 'default'} onSaveTemplateSettings={onSaveTemplateSettings} />
       )}
       {settingsTab === "qr" && (
         <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: 28, textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
@@ -1519,7 +1546,7 @@ function PersonCard({ d, templates, copied, hasSurvey, onSelect, onCopy, onDelet
 }
 
 // ── HR 대시보드 뷰 ──
-function HRView({ data, links, templates, deptGroups, surveys, onSelect, onAdd, onDelete, onUpdate }) {
+function HRView({ data, links, templates, deptGroups, surveys, defaultTemplateKey, onSelect, onAdd, onDelete, onUpdate }) {
   const [showModal, setShowModal] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [copied, setCopied] = useState(null);
@@ -1662,7 +1689,7 @@ function HRView({ data, links, templates, deptGroups, surveys, onSelect, onAdd, 
           )}
         </div>
       )}
-      {showModal && <AddModal onAdd={onAdd} onClose={() => setShowModal(false)} templates={templates} deptGroups={deptGroups} />}
+      {showModal && <AddModal onAdd={onAdd} onClose={() => setShowModal(false)} templates={templates} deptGroups={deptGroups} defaultTemplateKey={defaultTemplateKey} />}
       {editTarget && <EditModal person={editTarget} onUpdate={onUpdate} onClose={() => setEditTarget(null)} deptGroups={deptGroups} />}
     </div>
   );
@@ -1794,6 +1821,8 @@ function HRApp() {
   const [surveys, setSurveys] = useState([]);
   const [surveyQuestions, setSurveyQuestions] = useState(SURVEY_QUESTIONS);
   const [surveyPosition, setSurveyPosition] = useState(null);
+  const [templateOrder, setTemplateOrder] = useState([]);
+  const [defaultTemplateKey, setDefaultTemplateKey] = useState('default');
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("hr");
 
@@ -1823,7 +1852,7 @@ function HRApp() {
   }
 
   async function loadAll() {
-    const [linksRes, templatesRes, peopleRes, configRes, surveysRes, sqRes, spRes, tmplMetaRes] = await Promise.all([
+    const [linksRes, templatesRes, peopleRes, configRes, surveysRes, sqRes, spRes, tmplMetaRes, tmplSettingsRes] = await Promise.all([
       supabase.from('links').select('*').order('order_index'),
       supabase.from('templates').select('*'),
       supabase.from('people').select('*').order('created_at'),
@@ -1832,6 +1861,7 @@ function HRApp() {
       supabase.from('config').select('value').eq('key', 'survey_questions').maybeSingle(),
       supabase.from('config').select('value').eq('key', 'survey_position').maybeSingle(),
       supabase.from('config').select('value').eq('key', 'template_meta').maybeSingle(),
+      supabase.from('config').select('value').eq('key', 'template_settings').maybeSingle(),
     ]);
 
     let linksData = linksRes.data || [];
@@ -1857,9 +1887,15 @@ function HRApp() {
       templatesObj[t.id] = { name: t.name, steps: t.steps, intro: meta.intro || "", schedule: meta.schedule || "", outro: meta.outro || "" };
     });
 
+    const settings = tmplSettingsRes.data?.value || {};
+    const savedOrder = (settings.order || []).filter(k => templatesObj[k]);
+    Object.keys(templatesObj).forEach(k => { if (!savedOrder.includes(k)) savedOrder.push(k); });
+
     if (configRes.data?.value) setDeptGroups(configRes.data.value);
     setLinks(linksData);
     setTemplates(templatesObj);
+    setTemplateOrder(savedOrder);
+    setDefaultTemplateKey(settings.defaultKey || savedOrder[0] || 'default');
     setData(peopleData);
     setSurveys(surveysRes.data || []);
     if (sqRes.data?.value) setSurveyQuestions(sqRes.data.value);
@@ -1885,6 +1921,12 @@ function HRApp() {
   const saveSurveyPosition = async (pos) => {
     await supabase.from('config').upsert({ key: 'survey_position', value: pos });
     setSurveyPosition(pos);
+  };
+
+  const saveTemplateSettings = async (order, defaultKey) => {
+    await supabase.from('config').upsert({ key: 'template_settings', value: { order, defaultKey } });
+    setTemplateOrder(order);
+    setDefaultTemplateKey(defaultKey);
   };
 
   const saveDeptGroups = async (newGroups) => {
@@ -1967,6 +2009,7 @@ function HRApp() {
         templates={templates}
         deptGroups={deptGroups}
         surveys={surveys}
+        defaultTemplateKey={defaultTemplateKey}
         onSelect={(id) => navigate(`/person/${id}?from=hr`)}
         onAdd={addPerson}
         onDelete={deletePerson}
@@ -1985,6 +2028,9 @@ function HRApp() {
         onSaveSurveyQuestions={saveSurveyQuestions}
         surveyPosition={surveyPosition}
         onSaveSurveyPosition={saveSurveyPosition}
+        templateOrder={templateOrder}
+        defaultTemplateKey={defaultTemplateKey}
+        onSaveTemplateSettings={saveTemplateSettings}
       />}
     </>
   );
