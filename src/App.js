@@ -1673,8 +1673,9 @@ function PersonRoute() {
       ]);
       if (personRes.data) {
         setPerson(personRes.data);
-        const tmplRes = await supabase.from('templates').select('intro,schedule,outro').eq('id', personRes.data.template_key).single();
-        if (tmplRes.data) setTemplateMeta(tmplRes.data);
+        const metaRes = await supabase.from('config').select('value').eq('key', 'template_meta').maybeSingle();
+        const meta = metaRes.data?.value?.[personRes.data.template_key] || {};
+        setTemplateMeta({ intro: meta.intro || "", schedule: meta.schedule || "", outro: meta.outro || "" });
       }
       setLinks(linksRes.data || []);
       if (surveyRes.data) setSurvey(surveyRes.data);
@@ -1801,7 +1802,7 @@ function HRApp() {
   }
 
   async function loadAll() {
-    const [linksRes, templatesRes, peopleRes, configRes, surveysRes, sqRes, spRes] = await Promise.all([
+    const [linksRes, templatesRes, peopleRes, configRes, surveysRes, sqRes, spRes, tmplMetaRes] = await Promise.all([
       supabase.from('links').select('*').order('order_index'),
       supabase.from('templates').select('*'),
       supabase.from('people').select('*').order('created_at'),
@@ -1809,6 +1810,7 @@ function HRApp() {
       supabase.from('surveys').select('*').order('submitted_at', { ascending: false }),
       supabase.from('config').select('value').eq('key', 'survey_questions').maybeSingle(),
       supabase.from('config').select('value').eq('key', 'survey_position').maybeSingle(),
+      supabase.from('config').select('value').eq('key', 'template_meta').maybeSingle(),
     ]);
 
     let linksData = linksRes.data || [];
@@ -1827,8 +1829,12 @@ function HRApp() {
       peopleData = pr.data || [];
     }
 
+    const tmplMeta = tmplMetaRes.data?.value || {};
     const templatesObj = {};
-    templatesData.forEach(t => { templatesObj[t.id] = { name: t.name, steps: t.steps, intro: t.intro || "", schedule: t.schedule || "", outro: t.outro || "" }; });
+    templatesData.forEach(t => {
+      const meta = tmplMeta[t.id] || {};
+      templatesObj[t.id] = { name: t.name, steps: t.steps, intro: meta.intro || "", schedule: meta.schedule || "", outro: meta.outro || "" };
+    });
 
     if (configRes.data?.value) setDeptGroups(configRes.data.value);
     setLinks(linksData);
@@ -1866,12 +1872,15 @@ function HRApp() {
   };
 
   const saveTemplates = async (newTemplates) => {
-    const results = await Promise.all(
+    await Promise.all(
       Object.entries(newTemplates).map(([id, t]) =>
-        supabase.from('templates').upsert({ id, name: t.name, steps: t.steps, schedule: t.schedule || null, intro: t.intro || null, outro: t.outro || null })
+        supabase.from('templates').upsert({ id, name: t.name, steps: t.steps })
       )
     );
-    results.forEach(({ error }) => { if (error) console.error('saveTemplates error:', error); });
+    const meta = Object.fromEntries(
+      Object.entries(newTemplates).map(([id, t]) => [id, { intro: t.intro || "", schedule: t.schedule || "", outro: t.outro || "" }])
+    );
+    await supabase.from('config').upsert({ key: 'template_meta', value: meta });
     setTemplates(newTemplates);
   };
 
