@@ -820,6 +820,31 @@ function OnboardGate() {
   );
 }
 
+function CopyLinkButton({ personId, googleAccount, name }) {
+  const [copied, setCopied] = useState(false);
+  const url = `${window.location.origin}/person/${personId}`;
+  const handleCopy = () => {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  return (
+    <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+      <button onClick={handleCopy} style={{ flex: 1, background: copied ? "#f0fdf4" : "#f8fafc", border: `1px solid ${copied ? "#bbf7d0" : "#e2e8f0"}`, borderRadius: 8, padding: "9px", color: copied ? "#15803d" : "#475569", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+        {copied ? "✓ 링크 복사됨!" : "🔗 PC에서 보려면 링크 복사"}
+      </button>
+      {googleAccount && (
+        <button onClick={() => {
+          window.location.href = `mailto:${googleAccount}?subject=${encodeURIComponent('온보딩 체크리스트 링크')}&body=${encodeURIComponent(`안녕하세요, ${name}님!\n\nPC에서 아래 링크로 온보딩 체크리스트를 확인하세요 😊\n\n${url}`)}`;
+        }} style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "9px 12px", color: "#15803d", fontWeight: 700, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>
+          📧
+        </button>
+      )}
+    </div>
+  );
+}
+
 function PersonView({ person, links, templateMeta, survey, surveyQuestions, surveyPosition, onBack, onToggle, onSubmitSurvey, onUpdatePerson }) {
   const pct = calcProgress(person.steps);
   const allDone = pct === 100;
@@ -905,13 +930,8 @@ function PersonView({ person, links, templateMeta, survey, surveyQuestions, surv
               </div>
             </div>
           ) : null}
-          {!onUpdatePerson && person.google_account && (
-            <button onClick={() => {
-              const url = `${window.location.origin}/person/${person.id}`;
-              window.location.href = `mailto:${person.google_account}?subject=${encodeURIComponent('온보딩 체크리스트 링크')}&body=${encodeURIComponent(`안녕하세요, ${person.name}님!\n\nPC에서 아래 링크로 온보딩 체크리스트를 확인하세요 😊\n\n${url}`)}`;
-            }} style={{ width: "100%", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "9px", color: "#15803d", fontWeight: 700, fontSize: 13, cursor: "pointer", marginBottom: 12 }}>
-              📧 내 이메일로 링크 보내기
-            </button>
+          {!onUpdatePerson && (
+            <CopyLinkButton personId={person.id} googleAccount={person.google_account} name={person.name} />
           )}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <ProgressBar pct={pct} height={10} />
