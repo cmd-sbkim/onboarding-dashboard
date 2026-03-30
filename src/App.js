@@ -665,7 +665,7 @@ const SURVEY_QUESTIONS = [
   { id: 'q4', question: '오늘 체크리스트 항목들을 진행할 시간이 충분했나요?', type: 'scale', placeholder: '시간이 부족했다면 어떤 이유였나요? (예: 바로 업무 투입, 안내받는 시간이 길었음 등) (선택)' },
   { id: 'q5', question: '첫날 온보딩과 관련하여 자유롭게 남겨주세요 🙂', subtext: '좋았던 점, 아쉬웠던 점, 건의사항 등', type: 'text', placeholder: '자유롭게 작성해주세요 (선택)' },
 ];
-const SCORE_LABELS = ["", "매우 아니다", "아니다", "보통이에요", "그렇다", "매우 그렇다"];
+const SCORE_LABELS = ["", "별로였어요", "아쉬웠어요", "보통이에요", "좋았어요", "최고였어요"];
 
 function ScoreSelector({ value, onChange, minLabel, maxLabel }) {
   const min = minLabel || "별로였어요";
