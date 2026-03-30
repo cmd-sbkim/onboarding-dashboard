@@ -1890,9 +1890,11 @@ function HRApp() {
   };
 
   const deletePerson = async (id) => {
+    await supabase.from('surveys').delete().eq('person_id', id);
     const { error } = await supabase.from('people').delete().eq('id', id);
     if (error) { alert('삭제 실패: ' + error.message); return; }
     setData(prev => prev.filter(p => p.id !== id));
+    setSurveys(prev => prev.filter(s => s.person_id !== id));
   };
 
   const deleteSurvey = async (id) => {
