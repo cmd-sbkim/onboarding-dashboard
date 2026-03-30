@@ -659,13 +659,14 @@ function EditModal({ person, onUpdate, onClose, deptGroups: dg }) {
 
 // ── 만족도 설문 폼 ──
 const SURVEY_QUESTIONS = [
-  { id: 'q1', question: '오늘 첫날 온보딩 경험은 전반적으로 어떠셨나요?', type: 'scale', placeholder: '이 점수를 주신 이유가 있다면 자유롭게 남겨주세요. (선택)' },
+  { id: 'q1', question: '오늘 첫날 온보딩 경험은 전반적으로 어떠셨나요?', type: 'scale', placeholder: '이 점수를 주신 이유가 있다면 자유롭게 남겨주세요. (선택)', minLabel: "별로였어요", maxLabel: "최고였어요" },
   { id: 'q2', question: '오늘 온보딩을 통해 첫날 해야 할 일과 진행 방법을 전반적으로 이해하셨나요?', type: 'scale', subtext: "'잘 이해했다'는 것은 아래 상태를 의미해요 🙂\n• 오늘 해야 할 항목을 전반적으로 알고 있고\n• 필요한 정보를 스스로 찾아볼 수 있으며\n• 체크리스트를 큰 어려움 없이 진행할 수 있는 상태", placeholder: '이 점수를 주신 이유를 자유롭게 남겨주세요. (선택)' },
   { id: 'q3', question: '생활안내문의 내용은 첫날 온보딩을 진행하기에 충분히 이해하기 쉬웠나요?', type: 'scale', placeholder: '부족하거나 아쉬웠던 부분이 있다면 알려주세요. (선택)' },
   { id: 'q4', question: '오늘 체크리스트 항목들을 진행할 시간이 충분했나요?', type: 'scale', placeholder: '시간이 부족했다면 어떤 이유였나요? (예: 바로 업무 투입, 안내받는 시간이 길었음 등) (선택)' },
   { id: 'q5', question: '첫날 온보딩과 관련하여 자유롭게 남겨주세요 🙂', subtext: '좋았던 점, 아쉬웠던 점, 건의사항 등', type: 'text', placeholder: '자유롭게 작성해주세요 (선택)' },
 ];
-const SCORE_LABELS = ["", "별로였어요", "아쉬웠어요", "보통이에요", "좋았어요", "최고였어요"];
+const SCORE_LABELS = ["", "전혀 아니에요", "아니에요", "보통이에요", "그래요", "완전 그래요"];
+const SCORE_LABELS_SATISFACTION = ["", "별로였어요", "아쉬웠어요", "보통이에요", "좋았어요", "최고였어요"];
 
 function ScoreSelector({ value, onChange, minLabel, maxLabel }) {
   const min = minLabel || "별로였어요";
@@ -733,7 +734,7 @@ function SurveyForm({ personId, existingSurvey, onSubmit, surveyQuestions: propQ
             <ScoreSelector value={answers[q.id]?.score || 0} onChange={s => setScore(q.id, s)} minLabel={q.minLabel} maxLabel={q.maxLabel} />
             {(answers[q.id]?.score || 0) > 0 && (
               <div style={{ textAlign: "center", fontSize: 12, color: "#3b82f6", margin: "8px 0 10px", fontWeight: 600 }}>
-                {answers[q.id].score}점 — {SCORE_LABELS[answers[q.id].score]}
+                {answers[q.id].score}점 — {(q.id === 'q1' ? SCORE_LABELS_SATISFACTION : SCORE_LABELS)[answers[q.id].score]}
               </div>
             )}
             <div style={{ position: "relative", marginTop: 4 }}>
