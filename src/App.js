@@ -227,9 +227,9 @@ function SortableStepCard({ id, step, si, onEditLabel, onEditStepDesc, onRemoveS
             if (oldIdx !== -1 && newIdx !== -1) onMoveItem(oldIdx, newIdx);
           }
         }}>
-          <SortableContext items={step.items.map(it => it._dndId || `item-${Math.random()}`)} strategy={verticalListSortingStrategy}>
+          <SortableContext items={step.items.map(it => it._dndId)} strategy={verticalListSortingStrategy}>
             {step.items.map((item, ii) => (
-              <SortableCheckItem key={item._dndId || ii} id={item._dndId || `item-${ii}`} item={item} ii={ii}
+              <SortableCheckItem key={item._dndId} id={item._dndId} item={item} ii={ii}
                 onEditItem={onEditItem} onRemoveItem={onRemoveItem} onSetItemLinks={onSetItemLinks} />
             ))}
           </SortableContext>
@@ -310,7 +310,7 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
       [tKey]: {
         ...prev[tKey],
         steps: prev[tKey].steps.map((s, sIdx) =>
-          sIdx !== si ? s : { ...s, items: [...s.items, { text: "", done: false, links: [] }] }
+          sIdx !== si ? s : { ...s, items: [...s.items, { text: "", done: false, links: [], _dndId: `item-${Math.random()}` }] }
         )
       }
     }));
