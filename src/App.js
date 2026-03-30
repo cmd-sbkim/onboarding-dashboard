@@ -859,7 +859,7 @@ function CopyLinkButton({ personId, googleAccount, name }) {
   return (
     <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
       <button onClick={handleCopy} style={{ flex: 1, background: copied ? "#f0fdf4" : "#f8fafc", border: `1px solid ${copied ? "#bbf7d0" : "#e2e8f0"}`, borderRadius: 8, padding: "9px", color: copied ? "#15803d" : "#475569", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-        {copied ? "✓ 링크 복사됨!" : "🔗 PC에서 보려면 링크 복사"}
+        {copied ? "✓ 링크 복사됨!" : "🔗 링크 복사"}
       </button>
       {googleAccount && (
         <button onClick={() => {
