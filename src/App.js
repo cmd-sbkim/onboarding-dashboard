@@ -1866,11 +1866,12 @@ function HRApp() {
   };
 
   const saveTemplates = async (newTemplates) => {
-    await Promise.all(
+    const results = await Promise.all(
       Object.entries(newTemplates).map(([id, t]) =>
         supabase.from('templates').upsert({ id, name: t.name, steps: t.steps, schedule: t.schedule || null, intro: t.intro || null, outro: t.outro || null })
       )
     );
+    results.forEach(({ error }) => { if (error) console.error('saveTemplates error:', error); });
     setTemplates(newTemplates);
   };
 
