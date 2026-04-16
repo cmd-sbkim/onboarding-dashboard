@@ -469,6 +469,7 @@ function TemplateManager({ templates, onSaveTemplates, onDeleteTemplate, templat
               <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>📌 템플릿 이름</div>
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 <button onClick={() => copyTemplate(tab)} style={{ fontSize: 11, background: "#f8fafc", color: "#64748b", border: "1px solid #e2e8f0", borderRadius: 6, padding: "2px 8px", cursor: "pointer", fontWeight: 600 }}>📋 복사</button>
+                <button onClick={() => deleteTemplate(tab)} style={{ fontSize: 11, background: "#fef2f2", color: "#ef4444", border: "1px solid #fecaca", borderRadius: 6, padding: "2px 8px", cursor: "pointer", fontWeight: 600 }}>🗑 삭제</button>
                 {localDefault === tab
                   ? <span style={{ fontSize: 11, background: "#fef9c3", color: "#854d0e", border: "1px solid #fde68a", borderRadius: 6, padding: "2px 8px", fontWeight: 600 }}>⭐ 기본 템플릿</span>
                   : <button onClick={() => setLocalDefault(tab)} style={{ fontSize: 11, background: "#f8fafc", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 6, padding: "2px 8px", cursor: "pointer", fontWeight: 600 }}>기본으로 설정</button>
