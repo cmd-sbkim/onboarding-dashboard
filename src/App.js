@@ -299,6 +299,20 @@ function TemplateManager({ templates, onSaveTemplates, onDeleteTemplate, templat
     await onDeleteTemplate(key);
   };
 
+  const copyTemplate = (key) => {
+    const src = editTemplates[key];
+    const newKey = `tmpl_${Date.now()}`;
+    const copied = {
+      ...src,
+      name: `${src.name} (복사)`,
+      steps: src.steps.map(s => ({ ...s, _dndId: `dnd-${Math.random()}`, items: s.items.map(i => ({ ...i, _dndId: `item-${Math.random()}` })) })),
+      links: (src.links || []).map(l => ({ ...l, _dndId: `dnd-${Math.random()}` })),
+    };
+    setEditTemplates(prev => ({ ...prev, [newKey]: copied }));
+    setLocalOrder(prev => [...prev, newKey]);
+    setTab(newKey);
+  };
+
   const setTemplateLink = (tKey, i, field, val) =>
     setEditTemplates(prev => ({ ...prev, [tKey]: { ...prev[tKey], links: prev[tKey].links.map((l, idx) => idx === i ? { ...l, [field]: val } : l) } }));
 
@@ -534,7 +548,11 @@ function TemplateManager({ templates, onSaveTemplates, onDeleteTemplate, templat
               onChange={e => setEditTemplates(prev => ({ ...prev, [tab]: { ...prev[tab], outro: e.target.value } }))}
               style={{ width: "100%", background: "#fff", border: "1px solid #fde68a", borderRadius: 8, padding: "10px 12px", color: "#92400e", fontSize: 13, resize: "vertical", minHeight: 72, boxSizing: "border-box", fontFamily: "inherit" }} />
           </div>
-          <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 16, display: "flex", justifyContent: "flex-end" }}>
+          <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 16, display: "flex", justifyContent: "space-between" }}>
+            <button onClick={() => copyTemplate(tab)}
+              style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "8px 16px", color: "#2563eb", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+              📋 이 템플릿 복사
+            </button>
             <button onClick={() => deleteTemplate(tab)}
               style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 16px", color: "#ef4444", cursor: "pointer", fontSize: 13 }}>
               🗑 이 템플릿 삭제
