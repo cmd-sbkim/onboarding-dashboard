@@ -467,10 +467,13 @@ function TemplateManager({ templates, onSaveTemplates, onDeleteTemplate, templat
           <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "14px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>📌 템플릿 이름</div>
-              {localDefault === tab
-                ? <span style={{ fontSize: 11, background: "#fef9c3", color: "#854d0e", border: "1px solid #fde68a", borderRadius: 6, padding: "2px 8px", fontWeight: 600 }}>⭐ 기본 템플릿</span>
-                : <button onClick={() => setLocalDefault(tab)} style={{ fontSize: 11, background: "#f8fafc", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 6, padding: "2px 8px", cursor: "pointer", fontWeight: 600 }}>기본으로 설정</button>
-              }
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <button onClick={() => copyTemplate(tab)} style={{ fontSize: 11, background: "#f8fafc", color: "#64748b", border: "1px solid #e2e8f0", borderRadius: 6, padding: "2px 8px", cursor: "pointer", fontWeight: 600 }}>📋 복사</button>
+                {localDefault === tab
+                  ? <span style={{ fontSize: 11, background: "#fef9c3", color: "#854d0e", border: "1px solid #fde68a", borderRadius: 6, padding: "2px 8px", fontWeight: 600 }}>⭐ 기본 템플릿</span>
+                  : <button onClick={() => setLocalDefault(tab)} style={{ fontSize: 11, background: "#f8fafc", color: "#3b82f6", border: "1px solid #bfdbfe", borderRadius: 6, padding: "2px 8px", cursor: "pointer", fontWeight: 600 }}>기본으로 설정</button>
+                }
+              </div>
             </div>
             <input value={editTemplates[tab].name || ""} placeholder="템플릿 이름"
               onChange={e => setEditTemplates(prev => ({ ...prev, [tab]: { ...prev[tab], name: e.target.value } }))}
@@ -548,11 +551,7 @@ function TemplateManager({ templates, onSaveTemplates, onDeleteTemplate, templat
               onChange={e => setEditTemplates(prev => ({ ...prev, [tab]: { ...prev[tab], outro: e.target.value } }))}
               style={{ width: "100%", background: "#fff", border: "1px solid #fde68a", borderRadius: 8, padding: "10px 12px", color: "#92400e", fontSize: 13, resize: "vertical", minHeight: 72, boxSizing: "border-box", fontFamily: "inherit" }} />
           </div>
-          <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 16, display: "flex", justifyContent: "space-between" }}>
-            <button onClick={() => copyTemplate(tab)}
-              style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "8px 16px", color: "#2563eb", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
-              📋 이 템플릿 복사
-            </button>
+          <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 16, display: "flex", justifyContent: "flex-end" }}>
             <button onClick={() => deleteTemplate(tab)}
               style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 16px", color: "#ef4444", cursor: "pointer", fontSize: 13 }}>
               🗑 이 템플릿 삭제
