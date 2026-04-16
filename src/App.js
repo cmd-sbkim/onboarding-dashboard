@@ -253,15 +253,15 @@ function SortableDeptItem({ id, name, onEdit, onRemove }) {
 }
 
 // ── 템플릿 관리 뷰 ──
-function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDeleteTemplate, templateOrder: initOrder, defaultTemplateKey: initDefault, onSaveTemplateSettings }) {
-  const [tab, setTab] = useState("links");
+function TemplateManager({ templates, onSaveTemplates, onDeleteTemplate, templateOrder: initOrder, defaultTemplateKey: initDefault, onSaveTemplateSettings, onSaveTemplateLinks }) {
+  const initTab = (initOrder.length > 0 ? initOrder : Object.keys(templates))[0] || '';
+  const [tab, setTab] = useState(initTab);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [editLinks, setEditLinks] = useState(withDndId(links.map(l => ({ ...l }))));
   const [editTemplates, setEditTemplates] = useState(
     Object.fromEntries(Object.entries(templates).map(([k, t]) => {
       const nt = normalizeTemplate(t);
-      return [k, { ...nt, steps: withDndId(nt.steps.map(s => ({ ...s, items: s.items.map(i => ({ ...i, links: [...(i.links||[])] })) }))) }];
+      return [k, { ...nt, steps: withDndId(nt.steps.map(s => ({ ...s, items: s.items.map(i => ({ ...i, links: [...(i.links||[])] })) }))), links: withDndId((t.links || []).map(l => ({ ...l }))) }];
     }))
   );
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
@@ -282,7 +282,8 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
   const addTemplate = () => {
     if (!newTemplateName.trim()) return;
     const key = `tmpl_${Date.now()}`;
-    setEditTemplates(prev => ({ ...prev, [key]: { name: newTemplateName.trim(), steps: [] } }));
+    setEditTemplates(prev => ({ ...prev, [key]: { name: newTemplateName.trim(), steps: [], links: [] } }));
+    setLocalOrder(prev => [...prev, key]);
     setNewTemplateName("");
     setShowAddTemplate(false);
     setTab(key);
@@ -291,12 +292,21 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
   const deleteTemplate = async (key) => {
     if (!window.confirm(`"${editTemplates[key].name}" 템플릿을 삭제할까요?\n이 템플릿을 사용 중인 입사자의 체크리스트는 유지됩니다.`)) return;
     const newTemplates = Object.fromEntries(Object.entries(editTemplates).filter(([k]) => k !== key));
+    const newOrder = localOrder.filter(k => k !== key);
     setEditTemplates(newTemplates);
-    setTab("links");
+    setLocalOrder(newOrder);
+    setTab(newOrder[0] || '');
     await onDeleteTemplate(key);
   };
 
-  const setLink = (i, field, val) => setEditLinks(prev => prev.map((l, idx) => idx === i ? { ...l, [field]: val } : l));
+  const setTemplateLink = (tKey, i, field, val) =>
+    setEditTemplates(prev => ({ ...prev, [tKey]: { ...prev[tKey], links: prev[tKey].links.map((l, idx) => idx === i ? { ...l, [field]: val } : l) } }));
+
+  const removeTemplateLink = (tKey, i) =>
+    setEditTemplates(prev => ({ ...prev, [tKey]: { ...prev[tKey], links: prev[tKey].links.filter((_, idx) => idx !== i) } }));
+
+  const addTemplateLink = (tKey) =>
+    setEditTemplates(prev => ({ ...prev, [tKey]: { ...prev[tKey], links: [...prev[tKey].links, { label: "새 링크", emoji: "🔗", url: "", _dndId: `dnd-${Math.random()}` }] } }));
 
   const setItemField = (tKey, si, ii, field, val) =>
     setEditTemplates(prev => ({
@@ -382,9 +392,12 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
 
   const handleSave = async () => {
     setSaving(true);
-    await onSaveLinks(editLinks);
     await onSaveTemplates(editTemplates);
     if (onSaveTemplateSettings) await onSaveTemplateSettings(localOrder, localDefault);
+    if (onSaveTemplateLinks) {
+      const linksMap = Object.fromEntries(Object.entries(editTemplates).map(([k, t]) => [k, t.links || []]));
+      await onSaveTemplateLinks(linksMap);
+    }
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -405,7 +418,6 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
   return (
     <div style={{ padding: "0 0 24px" }}>
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <button style={TAB_STYLE(tab === "links")} onClick={() => setTab("links")}>🔗 가이드 링크</button>
         {localOrder.filter(key => editTemplates[key]).map((key, idx) => (
           <div key={key} style={{ display: "flex", alignItems: "center", gap: 2 }}>
             <button style={TAB_STYLE(tab === key)} onClick={() => setTab(key)}>
@@ -436,34 +448,7 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
         )}
       </div>
 
-      {tab === "links" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ fontSize: 13, color: "#64748b", marginBottom: 4 }}>입사자 화면 상단에 표시되는 바로가기 버튼의 링크를 설정합니다. ⠿ 를 드래그해서 순서를 바꿀 수 있어요.</div>
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={({ active, over }) => {
-            if (active.id !== over?.id) {
-              setEditLinks(prev => {
-                const oldIdx = prev.findIndex(l => l._dndId === active.id);
-                const newIdx = prev.findIndex(l => l._dndId === over.id);
-                return arrayMove(prev, oldIdx, newIdx);
-              });
-            }
-          }}>
-            <SortableContext items={editLinks.map(l => l._dndId)} strategy={verticalListSortingStrategy}>
-              {editLinks.map((l, i) => (
-                <SortableLinkCard key={l._dndId} id={l._dndId} link={l}
-                  onEdit={(field, val) => setLink(i, field, val)}
-                  onRemove={() => setEditLinks(prev => prev.filter((_, idx) => idx !== i))} />
-              ))}
-            </SortableContext>
-          </DndContext>
-          <button onClick={() => setEditLinks(prev => [...prev, { label: "새 링크", emoji: "🔗", url: "", _dndId: `dnd-${Math.random()}` }])}
-            style={{ background: "#fff", border: "1px dashed #bfdbfe", borderRadius: 10, padding: "10px", color: "#3b82f6", cursor: "pointer", fontSize: 13 }}>
-            + 링크 추가
-          </button>
-        </div>
-      )}
-
-      {tab !== "links" && editTemplates[tab] && (
+      {editTemplates[tab] && (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "14px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -476,6 +461,32 @@ function TemplateManager({ links, templates, onSaveLinks, onSaveTemplates, onDel
             <input value={editTemplates[tab].name || ""} placeholder="템플릿 이름"
               onChange={e => setEditTemplates(prev => ({ ...prev, [tab]: { ...prev[tab], name: e.target.value } }))}
               style={{ width: "100%", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 12px", color: "#0f172a", fontSize: 14, fontWeight: 700, boxSizing: "border-box" }} />
+          </div>
+          <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: "14px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 4 }}>🔗 가이드 링크</div>
+            <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>입사자 화면 상단에 표시되는 바로가기 버튼. ⠿ 드래그로 순서 변경.</div>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={({ active, over }) => {
+              if (active.id !== over?.id) {
+                setEditTemplates(prev => {
+                  const ls = prev[tab].links;
+                  const oldIdx = ls.findIndex(l => l._dndId === active.id);
+                  const newIdx = ls.findIndex(l => l._dndId === over.id);
+                  return { ...prev, [tab]: { ...prev[tab], links: arrayMove(ls, oldIdx, newIdx) } };
+                });
+              }
+            }}>
+              <SortableContext items={(editTemplates[tab].links || []).map(l => l._dndId)} strategy={verticalListSortingStrategy}>
+                {(editTemplates[tab].links || []).map((l, i) => (
+                  <SortableLinkCard key={l._dndId} id={l._dndId} link={l}
+                    onEdit={(field, val) => setTemplateLink(tab, i, field, val)}
+                    onRemove={() => removeTemplateLink(tab, i)} />
+                ))}
+              </SortableContext>
+            </DndContext>
+            <button onClick={() => addTemplateLink(tab)}
+              style={{ background: "#fff", border: "1px dashed #bfdbfe", borderRadius: 10, padding: "8px", color: "#3b82f6", cursor: "pointer", fontSize: 13, width: "100%", marginTop: 8 }}>
+              + 링크 추가
+            </button>
           </div>
           <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "14px 16px" }}>
             <div style={{ fontSize: 12, color: "#1d4ed8", fontWeight: 600, marginBottom: 8 }}>✏️ 시작 멘트 (입사자 화면 맨 위에 표시)</div>
@@ -1193,7 +1204,7 @@ function SurveyQuestionsManager({ questions, onSave, surveyPosition, onSaveSurve
 }
 
 // ── 설정 뷰 ──
-function SettingsView({ deptGroups, onSaveDeptGroups, links, templates, onSaveLinks, onSaveTemplates, onDeleteTemplate, surveyQuestions, onSaveSurveyQuestions, surveyPosition, onSaveSurveyPosition, templateOrder, defaultTemplateKey, onSaveTemplateSettings }) {
+function SettingsView({ deptGroups, onSaveDeptGroups, templates, onSaveTemplates, onDeleteTemplate, surveyQuestions, onSaveSurveyQuestions, surveyPosition, onSaveSurveyPosition, templateOrder, defaultTemplateKey, onSaveTemplateSettings, onSaveTemplateLinks }) {
   const [settingsTab, setSettingsTab] = useState("templates");
   const TAB = (active) => ({
     background: active ? "#3b82f6" : "#fff",
@@ -1235,7 +1246,7 @@ function SettingsView({ deptGroups, onSaveDeptGroups, links, templates, onSaveLi
         <button style={TAB(settingsTab === "survey")} onClick={() => setSettingsTab("survey")}>📝 만족도 문항</button>
       </div>
       {settingsTab === "templates" && (
-        <TemplateManager links={links} templates={templates} onSaveLinks={onSaveLinks} onSaveTemplates={onSaveTemplates} onDeleteTemplate={onDeleteTemplate} templateOrder={templateOrder || []} defaultTemplateKey={defaultTemplateKey || 'default'} onSaveTemplateSettings={onSaveTemplateSettings} />
+        <TemplateManager templates={templates} onSaveTemplates={onSaveTemplates} onDeleteTemplate={onDeleteTemplate} templateOrder={templateOrder || []} defaultTemplateKey={defaultTemplateKey || 'default'} onSaveTemplateSettings={onSaveTemplateSettings} onSaveTemplateLinks={onSaveTemplateLinks} />
       )}
       {settingsTab === "qr" && (
         <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: 28, textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
@@ -1712,9 +1723,9 @@ function PersonRoute() {
   useEffect(() => {
     let channel;
     async function load() {
-      const [personRes, linksRes, surveyRes, sqRes, spRes] = await Promise.all([
+      const [personRes, tmplLinksRes, surveyRes, sqRes, spRes] = await Promise.all([
         supabase.from('people').select('*').eq('id', id).single(),
-        supabase.from('links').select('*').order('order_index'),
+        supabase.from('config').select('value').eq('key', 'template_links').maybeSingle(),
         supabase.from('surveys').select('*').eq('person_id', id).maybeSingle(),
         supabase.from('config').select('value').eq('key', 'survey_questions').maybeSingle(),
         supabase.from('config').select('value').eq('key', 'survey_position').maybeSingle(),
@@ -1724,8 +1735,9 @@ function PersonRoute() {
         const metaRes = await supabase.from('config').select('value').eq('key', 'template_meta').maybeSingle();
         const meta = metaRes.data?.value?.[personRes.data.template_key] || {};
         setTemplateMeta({ intro: meta.intro || "", schedule: meta.schedule || "", outro: meta.outro || "" });
+        const tmplLinks = tmplLinksRes.data?.value || {};
+        setLinks(tmplLinks[personRes.data.template_key] || []);
       }
-      setLinks(linksRes.data || []);
       if (surveyRes.data) setSurvey(surveyRes.data);
       if (sqRes.data?.value) setSurveyQuestions(sqRes.data.value);
       if (spRes.data?.value != null) setSurveyPosition(spRes.data.value);
@@ -1852,7 +1864,7 @@ function HRApp() {
   }
 
   async function loadAll() {
-    const [linksRes, templatesRes, peopleRes, configRes, surveysRes, sqRes, spRes, tmplMetaRes, tmplSettingsRes] = await Promise.all([
+    const [linksRes, templatesRes, peopleRes, configRes, surveysRes, sqRes, spRes, tmplMetaRes, tmplSettingsRes, tmplLinksRes] = await Promise.all([
       supabase.from('links').select('*').order('order_index'),
       supabase.from('templates').select('*'),
       supabase.from('people').select('*').order('created_at'),
@@ -1862,6 +1874,7 @@ function HRApp() {
       supabase.from('config').select('value').eq('key', 'survey_position').maybeSingle(),
       supabase.from('config').select('value').eq('key', 'template_meta').maybeSingle(),
       supabase.from('config').select('value').eq('key', 'template_settings').maybeSingle(),
+      supabase.from('config').select('value').eq('key', 'template_links').maybeSingle(),
     ]);
 
     let linksData = linksRes.data || [];
@@ -1881,18 +1894,30 @@ function HRApp() {
     }
 
     const tmplMeta = tmplMetaRes.data?.value || {};
+    const tmplLinksConfig = tmplLinksRes.data?.value;
+    const settings = tmplSettingsRes.data?.value || {};
+
     const templatesObj = {};
     templatesData.forEach(t => {
       const meta = tmplMeta[t.id] || {};
-      templatesObj[t.id] = { name: t.name, steps: t.steps, intro: meta.intro || "", schedule: meta.schedule || "", outro: meta.outro || "" };
+      templatesObj[t.id] = { name: t.name, steps: t.steps, intro: meta.intro || "", schedule: meta.schedule || "", outro: meta.outro || "", links: [] };
     });
 
-    const settings = tmplSettingsRes.data?.value || {};
+    // 마이그레이션: template_links config 없으면 기존 links 테이블 → defaultKey 템플릿에 이관
+    if (!tmplLinksConfig) {
+      const defaultKey = settings.defaultKey || Object.keys(templatesObj)[0] || 'default';
+      const migratedLinks = linksData.map(({ id, _dndId, order_index, ...rest }) => rest);
+      if (templatesObj[defaultKey]) templatesObj[defaultKey].links = migratedLinks;
+      const linksMap = Object.fromEntries(Object.keys(templatesObj).map(k => [k, k === defaultKey ? migratedLinks : []]));
+      await supabase.from('config').upsert({ key: 'template_links', value: linksMap });
+    } else {
+      Object.keys(templatesObj).forEach(k => { templatesObj[k].links = tmplLinksConfig[k] || []; });
+    }
+
     const savedOrder = (settings.order || []).filter(k => templatesObj[k]);
     Object.keys(templatesObj).forEach(k => { if (!savedOrder.includes(k)) savedOrder.push(k); });
 
     if (configRes.data?.value) setDeptGroups(configRes.data.value);
-    setLinks(linksData);
     setTemplates(templatesObj);
     setTemplateOrder(savedOrder);
     setDefaultTemplateKey(settings.defaultKey || savedOrder[0] || 'default');
@@ -1903,14 +1928,11 @@ function HRApp() {
     setLoading(false);
   }
 
-  const saveLinks = async (newLinks) => {
-    const existingIds = links.map(l => l.id).filter(Boolean);
-    if (existingIds.length > 0) {
-      await supabase.from('links').delete().in('id', existingIds);
-    }
-    const toInsert = newLinks.map((l, i) => ({ label: l.label, emoji: l.emoji, url: l.url, order_index: i }));
-    const { data: saved } = await supabase.from('links').insert(toInsert).select();
-    setLinks(saved || newLinks);
+  const saveTemplateLinks = async (linksMap) => {
+    const clean = Object.fromEntries(
+      Object.entries(linksMap).map(([k, arr]) => [k, arr.map(({ _dndId, ...l }) => l)])
+    );
+    await supabase.from('config').upsert({ key: 'template_links', value: clean });
   };
 
   const saveSurveyQuestions = async (questions) => {
@@ -2019,9 +2041,7 @@ function HRApp() {
       {view === "settings" && <SettingsView
         deptGroups={deptGroups}
         onSaveDeptGroups={saveDeptGroups}
-        links={links}
         templates={templates}
-        onSaveLinks={saveLinks}
         onSaveTemplates={saveTemplates}
         onDeleteTemplate={deleteTemplate}
         surveyQuestions={surveyQuestions}
@@ -2031,6 +2051,7 @@ function HRApp() {
         templateOrder={templateOrder}
         defaultTemplateKey={defaultTemplateKey}
         onSaveTemplateSettings={saveTemplateSettings}
+        onSaveTemplateLinks={saveTemplateLinks}
       />}
     </>
   );
