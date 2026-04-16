@@ -1335,9 +1335,10 @@ function SettingsView({ deptGroups, onSaveDeptGroups, templates, onSaveTemplates
 }
 
 // ── 만족도 대시보드 ──
-function SatisfactionView({ surveys, people, onDeleteSurvey, surveyQuestions }) {
+function SatisfactionView({ surveys, people, onDeleteSurvey, surveyQuestions, templates }) {
   const questions = (surveyQuestions && surveyQuestions.length) ? surveyQuestions : SURVEY_QUESTIONS;
   const [openAccordions, setOpenAccordions] = useState(new Set());
+  const [filterTemplate, setFilterTemplate] = useState('전체');
 
   if (!surveys.length) return (
     <div style={{ padding: 24, textAlign: "center", color: "#94a3b8", paddingTop: 80 }}>
@@ -1354,20 +1355,33 @@ function SatisfactionView({ surveys, people, onDeleteSurvey, surveyQuestions }) 
     }
     return sv.score || 0;
   };
-  const avg = (surveys.reduce((a, sv) => a + getSurveyScore(sv), 0) / surveys.length).toFixed(1);
-  const dist = [1,2,3,4,5].map(s => ({ score: s, count: surveys.filter(sv => Math.round(getSurveyScore(sv)) === s).length }));
+  const avg = filteredSurveys.length ? (filteredSurveys.reduce((a, sv) => a + getSurveyScore(sv), 0) / filteredSurveys.length).toFixed(1) : "0.0";
+  const dist = [1,2,3,4,5].map(s => ({ score: s, count: filteredSurveys.filter(sv => Math.round(getSurveyScore(sv)) === s).length }));
   const max = Math.max(...dist.map(d => d.count), 1);
   const scaleQs = questions.filter(q => q.type === 'scale');
   const qAvgs = scaleQs.map(q => {
-    const scores = surveys.map(sv => sv.answers?.[q.id]?.score || 0).filter(s => s > 0);
+    const scores = filteredSurveys.map(sv => sv.answers?.[q.id]?.score || 0).filter(s => s > 0);
     return { q, avg: scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : null, count: scores.length };
   });
   const personMap = Object.fromEntries(people.map(p => [p.id, p]));
   const scoreColor = (v) => v === null ? "#94a3b8" : v >= 4.5 ? "#16a34a" : v >= 3.5 ? "#2563eb" : "#ea580c";
 
+  // 템플릿 필터 탭 목록 (실제 설문이 있는 템플릿만)
+  const tmplTabs = ['전체', ...Array.from(new Set(
+    surveys.map(sv => {
+      const tk = personMap[sv.person_id]?.template_key;
+      return (templates && tk && templates[tk]) ? templates[tk].name : '기본';
+    })
+  ))];
+  const filteredSurveys = filterTemplate === '전체' ? surveys : surveys.filter(sv => {
+    const tk = personMap[sv.person_id]?.template_key;
+    const tmplName = (templates && tk && templates[tk]) ? templates[tk].name : '기본';
+    return tmplName === filterTemplate;
+  });
+
   // 주관식 응답 모아보기
   const textResponses = questions.map((q, qIdx) => {
-    const responses = surveys.map(sv => {
+    const responses = filteredSurveys.map(sv => {
       const person = personMap[sv.person_id];
       const val = q.type === 'text'
         ? (sv.answers?.[q.id] || sv.answers?.q5 || '')
@@ -1385,14 +1399,26 @@ function SatisfactionView({ surveys, people, onDeleteSurvey, surveyQuestions }) 
 
   return (
     <div style={{ padding: 24, maxWidth: 720, margin: "0 auto" }}>
-      <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", marginBottom: 24 }}>📊 만족도 현황</div>
+      <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", marginBottom: 16 }}>📊 만족도 현황</div>
+
+      {/* 템플릿 필터 탭 */}
+      {tmplTabs.length > 2 && (
+        <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
+          {tmplTabs.map(t => (
+            <button key={t} onClick={() => setFilterTemplate(t)}
+              style={{ padding: "6px 14px", borderRadius: 8, border: filterTemplate === t ? "none" : "1px solid #e2e8f0", cursor: "pointer", fontSize: 13, fontWeight: 600, background: filterTemplate === t ? "#3b82f6" : "#fff", color: filterTemplate === t ? "#fff" : "#64748b", boxShadow: filterTemplate === t ? "0 1px 3px rgba(59,130,246,0.25)" : "none" }}>
+              {t}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 통계 카드 */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
         <div style={{ background: "#fffbeb", borderRadius: 12, padding: "18px 20px", border: "1px solid #fde68a" }}>
           <div style={{ fontSize: 12, color: "#92400e", marginBottom: 4, fontWeight: 500 }}>평균 점수</div>
           <div style={{ fontSize: 32, fontWeight: 800, color: "#d97706" }}>⭐ {avg}</div>
-          <div style={{ fontSize: 11, color: "#a16207" }}>총 {surveys.length}건 응답</div>
+          <div style={{ fontSize: 11, color: "#a16207" }}>총 {filteredSurveys.length}건 응답</div>
         </div>
         <div style={{ background: "#fff", borderRadius: 12, padding: "18px 20px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
           <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8, fontWeight: 500 }}>점수 분포</div>
@@ -1462,9 +1488,9 @@ function SatisfactionView({ surveys, people, onDeleteSurvey, surveyQuestions }) 
       )}
 
       {/* 개별 설문 목록 */}
-      <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 10 }}>개별 응답 ({surveys.length}건)</div>
+      <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 10 }}>개별 응답 ({filteredSurveys.length}건)</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {[...surveys].sort((a,b) => new Date(b.submitted_at) - new Date(a.submitted_at)).map(sv => {
+        {[...filteredSurveys].sort((a,b) => new Date(b.submitted_at) - new Date(a.submitted_at)).map(sv => {
           const p = personMap[sv.person_id];
           const hasAnswers = sv.answers && typeof sv.answers === 'object';
           return (
@@ -2037,7 +2063,7 @@ function HRApp() {
         onDelete={deletePerson}
         onUpdate={updatePerson}
       />}
-      {view === "satisfaction" && <SatisfactionView surveys={surveys} people={data} onDeleteSurvey={deleteSurvey} surveyQuestions={surveyQuestions} />}
+      {view === "satisfaction" && <SatisfactionView surveys={surveys} people={data} onDeleteSurvey={deleteSurvey} surveyQuestions={surveyQuestions} templates={templates} />}
       {view === "settings" && <SettingsView
         deptGroups={deptGroups}
         onSaveDeptGroups={saveDeptGroups}
