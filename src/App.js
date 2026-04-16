@@ -299,7 +299,7 @@ function TemplateManager({ templates, onSaveTemplates, onDeleteTemplate, templat
     await onDeleteTemplate(key);
   };
 
-  const copyTemplate = (key) => {
+  const copyTemplate = async (key) => {
     const src = editTemplates[key];
     const newKey = `tmpl_${Date.now()}`;
     const copied = {
@@ -308,9 +308,18 @@ function TemplateManager({ templates, onSaveTemplates, onDeleteTemplate, templat
       steps: src.steps.map(s => ({ ...s, _dndId: `dnd-${Math.random()}`, items: s.items.map(i => ({ ...i, _dndId: `item-${Math.random()}` })) })),
       links: (src.links || []).map(l => ({ ...l, _dndId: `dnd-${Math.random()}` })),
     };
-    setEditTemplates(prev => ({ ...prev, [newKey]: copied }));
-    setLocalOrder(prev => [...prev, newKey]);
+    const newTemplates = { ...editTemplates, [newKey]: copied };
+    const newOrder = [...localOrder, newKey];
+    setEditTemplates(newTemplates);
+    setLocalOrder(newOrder);
     setTab(newKey);
+    // 즉시 저장
+    await onSaveTemplates(newTemplates);
+    if (onSaveTemplateSettings) await onSaveTemplateSettings(newOrder, localDefault);
+    if (onSaveTemplateLinks) {
+      const linksMap = Object.fromEntries(Object.entries(newTemplates).map(([k, t]) => [k, t.links || []]));
+      await onSaveTemplateLinks(linksMap);
+    }
   };
 
   const setTemplateLink = (tKey, i, field, val) =>
