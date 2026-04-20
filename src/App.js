@@ -1382,16 +1382,7 @@ function SatisfactionView({ surveys, people, onDeleteSurvey, surveyQuestions, te
     }
     return sv.score || 0;
   };
-  const avg = filteredSurveys.length ? (filteredSurveys.reduce((a, sv) => a + getSurveyScore(sv), 0) / filteredSurveys.length).toFixed(1) : "0.0";
-  const dist = [1,2,3,4,5].map(s => ({ score: s, count: filteredSurveys.filter(sv => Math.round(getSurveyScore(sv)) === s).length }));
-  const max = Math.max(...dist.map(d => d.count), 1);
-  const scaleQs = questions.filter(q => q.type === 'scale');
-  const qAvgs = scaleQs.map(q => {
-    const scores = filteredSurveys.map(sv => sv.answers?.[q.id]?.score || 0).filter(s => s > 0);
-    return { q, avg: scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : null, count: scores.length };
-  });
   const personMap = Object.fromEntries(people.map(p => [p.id, p]));
-  const scoreColor = (v) => v === null ? "#94a3b8" : v >= 4.5 ? "#16a34a" : v >= 3.5 ? "#2563eb" : "#ea580c";
 
   // 템플릿 필터 탭 목록 (실제 설문이 있는 템플릿만)
   const tmplTabs = ['전체', ...Array.from(new Set(
@@ -1405,6 +1396,16 @@ function SatisfactionView({ surveys, people, onDeleteSurvey, surveyQuestions, te
     const tmplName = (templates && tk && templates[tk]) ? templates[tk].name : '기본';
     return tmplName === filterTemplate;
   });
+
+  const avg = filteredSurveys.length ? (filteredSurveys.reduce((a, sv) => a + getSurveyScore(sv), 0) / filteredSurveys.length).toFixed(1) : "0.0";
+  const dist = [1,2,3,4,5].map(s => ({ score: s, count: filteredSurveys.filter(sv => Math.round(getSurveyScore(sv)) === s).length }));
+  const max = Math.max(...dist.map(d => d.count), 1);
+  const scaleQs = questions.filter(q => q.type === 'scale');
+  const qAvgs = scaleQs.map(q => {
+    const scores = filteredSurveys.map(sv => sv.answers?.[q.id]?.score || 0).filter(s => s > 0);
+    return { q, avg: scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : null, count: scores.length };
+  });
+  const scoreColor = (v) => v === null ? "#94a3b8" : v >= 4.5 ? "#16a34a" : v >= 3.5 ? "#2563eb" : "#ea580c";
 
   // 주관식 응답 모아보기
   const textResponses = questions.map((q, qIdx) => {
