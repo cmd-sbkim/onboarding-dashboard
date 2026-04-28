@@ -910,7 +910,7 @@ function CopyLinkButton({ personId, googleAccount, name }) {
   );
 }
 
-function PersonView({ person, links, templateMeta, survey, surveyQuestions, surveyPosition, onBack, onToggle, onSubmitSurvey, onUpdatePerson }) {
+function PersonView({ person, links, templateMeta, survey, surveyQuestions, surveyPosition, onBack, onToggle, onToggleItemHidden, onSubmitSurvey, onUpdatePerson }) {
   const pct = calcProgress(person.steps);
   const allDone = pct === 100;
   const intro = templateMeta?.intro || "";
@@ -1062,29 +1062,38 @@ function PersonView({ person, links, templateMeta, survey, surveyQuestions, surv
             )}
             {!isCollapsed && (
               <div style={{ padding: "8px 14px 12px" }}>
-                {step.items.map((item, ii) => (
-                  <div key={ii} style={{ padding: "8px 0", borderBottom: ii < step.items.length - 1 ? "1px solid #f1f5f9" : "none" }}>
+                {step.items.map((item, ii) => {
+                  if (item.hidden && !onToggleItemHidden) return null;
+                  return (
+                  <div key={ii} style={{ padding: "8px 0", borderBottom: ii < step.items.length - 1 ? "1px solid #f1f5f9" : "none", opacity: item.hidden ? 0.4 : 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div onClick={() => onToggle(person.id, si, ii)}
-                        style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${item.done ? "#22c55e" : "#d1d5db"}`, background: item.done ? "#22c55e" : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", transition: "all .2s", cursor: "pointer", minWidth: 22 }}>
+                      <div onClick={() => !item.hidden && onToggle(person.id, si, ii)}
+                        style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${item.done ? "#22c55e" : "#d1d5db"}`, background: item.done ? "#22c55e" : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", transition: "all .2s", cursor: item.hidden ? "default" : "pointer", minWidth: 22 }}>
                         {item.done && <span style={{ color: "#fff", fontSize: 11, fontWeight: 700 }}>✓</span>}
                       </div>
-                      <span onClick={() => onToggle(person.id, si, ii)}
-                        style={{ fontSize: 13, color: item.done ? "#94a3b8" : "#0f172a", textDecoration: item.done ? "line-through" : "none", flex: 1, cursor: "pointer" }}>
+                      <span onClick={() => !item.hidden && onToggle(person.id, si, ii)}
+                        style={{ fontSize: 13, color: item.done ? "#94a3b8" : "#0f172a", textDecoration: item.done ? "line-through" : "none", flex: 1, cursor: item.hidden ? "default" : "pointer" }}>
                         {item.text}
                       </span>
-                      {(item.links?.length ? item.links : item.link ? [{ label: "링크", url: item.link }] : []).filter(l => l.url).map((lnk, li) => (
+                      {!item.hidden && (item.links?.length ? item.links : item.link ? [{ label: "링크", url: item.link }] : []).filter(l => l.url).map((lnk, li) => (
                         <a key={li} href={lnk.url} target="_blank" rel="noreferrer"
                           style={{ flexShrink: 0, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "#2563eb", textDecoration: "none", whiteSpace: "nowrap" }}>
                           {lnk.label || "링크"} 🔗
                         </a>
                       ))}
+                      {onToggleItemHidden && (
+                        <button onClick={() => onToggleItemHidden(person.id, si, ii)}
+                          style={{ flexShrink: 0, background: item.hidden ? "#f0fdf4" : "#f8fafc", border: `1px solid ${item.hidden ? "#bbf7d0" : "#e2e8f0"}`, borderRadius: 6, padding: "2px 7px", fontSize: 11, color: item.hidden ? "#16a34a" : "#94a3b8", cursor: "pointer", whiteSpace: "nowrap" }}>
+                          {item.hidden ? "보이기" : "숨기기"}
+                        </button>
+                      )}
                     </div>
-                    {item.desc && (
+                    {item.desc && !item.hidden && (
                       <div style={{ marginTop: 4, marginLeft: 28, fontSize: 12, color: "#94a3b8", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{item.desc}</div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1818,6 +1827,14 @@ function PersonRoute() {
     await supabase.from('people').update({ steps: newSteps }).eq('id', personId);
   };
 
+  const toggleItemHidden = async (personId, stepIdx, itemIdx) => {
+    const newSteps = person.steps.map((s, si) =>
+      si !== stepIdx ? s : { ...s, items: s.items.map((it, ii) => ii !== itemIdx ? it : { ...it, hidden: !it.hidden }) }
+    );
+    setPerson(p => ({ ...p, steps: newSteps }));
+    await supabase.from('people').update({ steps: newSteps }).eq('id', personId);
+  };
+
   const submitSurvey = async ({ score, feedback, answers }) => {
     const { data } = await supabase.from('surveys').insert({ person_id: id, score, feedback, answers }).select().single();
     if (data) setSurvey(data);
@@ -1834,7 +1851,7 @@ function PersonRoute() {
       입사자를 찾을 수 없습니다.
     </div>
   );
-  return <PersonView person={person} links={links} templateMeta={templateMeta} survey={survey} surveyQuestions={surveyQuestions} surveyPosition={surveyPosition} onBack={fromHR ? () => navigate('/onboarding-dashboard/hr') : undefined} onToggle={toggleItem} onSubmitSurvey={submitSurvey} onUpdatePerson={fromHR ? updatePersonMeta : undefined} />;
+  return <PersonView person={person} links={links} templateMeta={templateMeta} survey={survey} surveyQuestions={surveyQuestions} surveyPosition={surveyPosition} onBack={fromHR ? () => navigate('/onboarding-dashboard/hr') : undefined} onToggle={toggleItem} onToggleItemHidden={fromHR ? toggleItemHidden : undefined} onSubmitSurvey={submitSurvey} onUpdatePerson={fromHR ? updatePersonMeta : undefined} />;
 }
 
 // ── HR 앱 ──
